@@ -1,0 +1,44 @@
+# ============================================================
+# Tools4Genz — Cloudflare Worker configuration
+#
+# IMPORTANT — REPLACE BEFORE DEPLOYING:
+#   1. `name`                           — your worker route name (keep tools4genz-api)
+#   2. `database_name`                  — your D1 database name (default: tools4genz-db)
+#   3. `database_id`                    — your D1 database id (92ad56fb-4ece-4bf4-9e57-1df377c8f2fd)
+#   4. `routes`                         — uncomment & set your production custom domain
+#   5. `ALLOWED_ORIGINS` (vars)         — add your production frontend origins
+# ============================================================
+
+name = "tools4genz-api"
+main = "src/index.ts"
+compatibility_date = "2025-01-01"
+
+# --- D1 Database binding ---
+# Run `wrangler d1 create tools4genz-db` and copy the returned database_id here.
+[[d1_databases]]
+binding = "DB"
+database_name = "tools4genz-db"
+database_id = "92ad56fb-4ece-4bf4-9e57-1df377c8f2fd"
+
+# --- Migrations directory ---
+# wrangler d1 migrations apply tools4genz-db --local    (local dev)
+# wrangler d1 migrations apply tools4genz-db            (production)
+
+# --- Vars (non-secret public configuration) ---
+# Comma-separated list of additional allowed allowed CORS origins.
+# The worker already allows localhost dev ports and https://tools4genz.com.
+[vars]
+ALLOWED_ORIGINS = "https://tools4genz.com,https://www.tools4genz.com"
+
+# --- Production route (UNCOMMENT when the API domain is live) ---
+# routes = [
+#   { pattern = "api.tools4genz.com", custom_domain = true }
+# ]
+
+# --- Local dev port (used by E2E tests) ---
+# Run `wrangler dev --port 8787` from the worker/ directory.
+# Frontend VITE_API_BASE_URL should be http://localhost:8787 in development.
+
+# --- Observability (optional, requires paid plan) ---
+# [observability]
+# enabled = true
