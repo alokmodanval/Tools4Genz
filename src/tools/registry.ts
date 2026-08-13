@@ -432,6 +432,131 @@ export const toolRegistry: ToolDefinition[] = [
     toolType: 'text',
     executionMode: 'api',
   },
+
+  // --- PHASE 6.5 — DEMO INTEGRATION TYPES ---
+  // Safe, self-contained examples. No real third-party products are connected.
+  // These demonstrate the universal integration system without external claims.
+
+  // 1. External URL tool (safe demo — opens in a new tab, never iframed)
+  {
+    id: 'demo-external',
+    slug: 'demo-external',
+    name: 'Demo External Tool',
+    description: 'A demo tool hosted at an external URL. Opens safely in a new tab.',
+    longDescription: 'This demonstrates the external-url integration type. The tool page shows metadata and an "Open Tool" CTA that navigates to the external site in a new tab. External sites are never embedded in an iframe by default.',
+    category: 'utility-tools',
+    icon: '🔗',
+    tags: ['Demo', 'External', 'Integration'],
+    featured: false,
+    status: 'active',
+    toolType: 'utility',
+    executionMode: 'external',
+    integration: 'external-url',
+    integrationConfig: {
+      type: 'external-url',
+      url: 'https://example.com',
+      openMode: 'new-tab',
+    },
+    features: ['Safe new-tab navigation', 'Metadata + SEO page on Tools4Genz', 'No iframe by default'],
+    useCases: ['Showcasing standalone deployed tools', 'Linking to existing projects'],
+    seo: {
+      title: 'Demo External Tool - Tools4Genz',
+      description: 'A safe demo of the external URL tool integration type.',
+      keywords: ['external tool', 'demo', 'integration'],
+    },
+  },
+
+  // 2. Embedded tool (opt-in sandboxed iframe — allowEmbed required)
+  {
+    id: 'demo-embedded',
+    slug: 'demo-embedded',
+    name: 'Demo Embedded App',
+    description: 'A demo embedded web app rendered in a sandboxed iframe.',
+    longDescription: 'This demonstrates the embedded integration type. The app is rendered inside a sandboxed iframe with restrictive defaults. Embedding is opt-in via allowEmbed and falls back to an external-open CTA if the site blocks framing.',
+    category: 'utility-tools',
+    icon: '🖼️',
+    tags: ['Demo', 'Embedded', 'Iframe'],
+    featured: false,
+    status: 'active',
+    toolType: 'utility',
+    executionMode: 'external',
+    integration: 'embedded',
+    allowEmbed: true,
+    integrationConfig: {
+      type: 'embedded',
+      url: 'https://example.com',
+      sandbox: 'allow-scripts allow-same-origin',
+    },
+    features: ['Sandboxed iframe (restrictive defaults)', 'Loading state', 'External-open fallback'],
+    useCases: ['Embedding approved internal apps', 'Responsive embedded tools'],
+    seo: {
+      title: 'Demo Embedded App - Tools4Genz',
+      description: 'A safe demo of the embedded tool integration type with sandboxed iframe.',
+      keywords: ['embedded tool', 'iframe', 'demo'],
+    },
+  },
+
+  // 3. Worker API tool (calls a Tools4Genz worker endpoint — mock/local)
+  {
+    id: 'demo-worker-api',
+    slug: 'demo-worker-api',
+    name: 'Demo Worker API Tool',
+    description: 'A demo tool powered by a Cloudflare Worker API endpoint.',
+    longDescription: 'This demonstrates the worker-api integration type. The tool UI sends a JSON request to a Tools4Genz worker endpoint and renders the JSON response. No secrets are stored in the frontend.',
+    category: 'developer-tools',
+    icon: '⚙️',
+    tags: ['Demo', 'Worker', 'API'],
+    featured: false,
+    status: 'active',
+    toolType: 'developer',
+    executionMode: 'worker',
+    integration: 'worker-api',
+    integrationConfig: {
+      type: 'worker-api',
+      endpoint: '/api/demo-worker',
+      method: 'POST',
+      requestSchema: { input: 'string' },
+      responseSchema: { result: 'string' },
+    },
+    features: ['JSON request/response', 'Loading & error states', 'Server-side logic (no secrets in browser)'],
+    useCases: ['Tools whose logic runs on Cloudflare Workers', 'API-powered utilities'],
+    seo: {
+      title: 'Demo Worker API Tool - Tools4Genz',
+      description: 'A safe demo of the worker API tool integration type.',
+      keywords: ['worker api', 'cloudflare worker', 'demo'],
+    },
+  },
+
+  // 4. External API tool (adapter architecture only — no secrets)
+  {
+    id: 'demo-external-api',
+    slug: 'demo-external-api',
+    name: 'Demo External API Tool',
+    description: 'A demo tool backed by an external API (adapter architecture).',
+    longDescription: 'This demonstrates the external-api integration type. The adapter architecture is configured with a stable endpoint identifier. Live execution requires a server-side adapter (planned for a later phase). No API keys or secrets are exposed in the browser.',
+    category: 'developer-tools',
+    icon: '🔌',
+    tags: ['Demo', 'External API', 'Adapter'],
+    featured: false,
+    status: 'active',
+    toolType: 'developer',
+    executionMode: 'api',
+    integration: 'external-api',
+    integrationConfig: {
+      type: 'external-api',
+      endpointId: 'demo-external-api',
+      method: 'POST',
+      requestMapping: { input: 'query' },
+      responseMapping: { result: 'data' },
+    },
+    features: ['Adapter architecture only', 'No secrets in frontend', 'Server-side adapter planned'],
+    useCases: ['Preparing for future external API integrations', 'Architecture demonstration'],
+    seo: {
+      title: 'Demo External API Tool - Tools4Genz',
+      description: 'A safe demo of the external API tool integration type (adapter architecture).',
+      keywords: ['external api', 'adapter', 'demo'],
+    },
+  },
 ];
 
 // Registry Lookup Helpers

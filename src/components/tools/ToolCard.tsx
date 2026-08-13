@@ -4,6 +4,7 @@ import { Tool } from '@/types/tool';
 import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
+import { getIntegrationBadge } from '@/tools/integrations';
 
 interface ToolCardProps {
   tool: Tool;
@@ -11,13 +12,14 @@ interface ToolCardProps {
 
 const ToolCard: React.FC<ToolCardProps> = ({ tool }) => {
   const { t } = useTranslation();
+  const integrationBadge = getIntegrationBadge(tool);
 
   const isComingSoon = tool.status === 'coming-soon';
   const isDisabled = tool.status === 'disabled';
 
   return (
-    <Card 
-      variant="elevated" 
+    <Card
+      variant="elevated"
       className="flex flex-col h-full transition-all duration-300 hover:-translate-y-1 hover:shadow-lg dark:hover:shadow-gray-900/50"
     >
       <div className="flex items-start justify-between mb-4">
@@ -32,14 +34,17 @@ const ToolCard: React.FC<ToolCardProps> = ({ tool }) => {
           ) : isDisabled ? (
             <Badge variant="danger" size="sm">{t('tools.disabled', 'Disabled')}</Badge>
           ) : null}
+          <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${integrationBadge.className}`}>
+            {t(integrationBadge.labelKey, integrationBadge.label)}
+          </span>
           <Badge variant="primary" size="sm">{tool.category}</Badge>
         </div>
       </div>
-      
+
       <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2 line-clamp-1">
         {tool.name}
       </h3>
-      
+
       <p className="text-gray-600 dark:text-gray-300 text-sm mb-4 line-clamp-2 flex-grow">
         {tool.description}
       </p>

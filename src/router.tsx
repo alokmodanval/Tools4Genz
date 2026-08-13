@@ -1,8 +1,9 @@
 import { createBrowserRouter } from 'react-router-dom';
 import { lazy, Suspense } from 'react';
 import Layout from '@/components/layout/Layout';
+import AdminLayout from '@/components/layout/AdminLayout';
 
-// Lazy load all pages
+// Lazy load public pages
 const HomePage = lazy(() => import('@/pages/HomePage'));
 const ToolsPage = lazy(() => import('@/pages/ToolsPage'));
 const ToolDetailPage = lazy(() => import('@/pages/ToolDetailPage'));
@@ -13,6 +14,15 @@ const StudentsPage = lazy(() => import('@/pages/StudentsPage'));
 const ClientsPage = lazy(() => import('@/pages/ClientsPage'));
 const AboutPage = lazy(() => import('@/pages/AboutPage'));
 const NotFoundPage = lazy(() => import('@/pages/NotFoundPage'));
+
+// Lazy load admin pages
+const DashboardPage = lazy(() => import('@/pages/admin/DashboardPage'));
+const ToolManagementPage = lazy(() => import('@/pages/admin/ToolManagementPage'));
+const ProjectManagementPage = lazy(() => import('@/pages/admin/ProjectManagementPage'));
+const ServiceManagementPage = lazy(() => import('@/pages/admin/ServiceManagementPage'));
+const CategoryManagementPage = lazy(() => import('@/pages/admin/CategoryManagementPage'));
+const RequestManagementPage = lazy(() => import('@/pages/admin/RequestManagementPage'));
+const SettingsPage = lazy(() => import('@/pages/admin/SettingsPage'));
 
 // Loading fallback
 const PageLoader = () => (
@@ -41,6 +51,20 @@ export const router = createBrowserRouter([
       { path: 'clients', element: <SuspenseWrapper><ClientsPage /></SuspenseWrapper> },
       { path: 'about', element: <SuspenseWrapper><AboutPage /></SuspenseWrapper> },
       { path: '*', element: <SuspenseWrapper><NotFoundPage /></SuspenseWrapper> },
+    ],
+  },
+  {
+    path: '/admin',
+    element: <AdminLayout />,
+    children: [
+      { index: true, element: <SuspenseWrapper><DashboardPage /></SuspenseWrapper> },
+      { path: 'dashboard', element: <SuspenseWrapper><DashboardPage /></SuspenseWrapper> },
+      { path: 'tools', element: <SuspenseWrapper><ToolManagementPage /></SuspenseWrapper> },
+      { path: 'projects', element: <SuspenseWrapper><ProjectManagementPage /></SuspenseWrapper> },
+      { path: 'services', element: <SuspenseWrapper><ServiceManagementPage /></SuspenseWrapper> },
+      { path: 'categories', element: <SuspenseWrapper><CategoryManagementPage /></SuspenseWrapper> },
+      { path: 'requests', element: <SuspenseWrapper><RequestManagementPage /></SuspenseWrapper> },
+      { path: 'settings', element: <SuspenseWrapper><SettingsPage /></SuspenseWrapper> },
     ],
   },
 ]);
