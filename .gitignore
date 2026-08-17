@@ -32,3 +32,6 @@ dist-ssr
 # wrangler
 .wrangler
 worker/.wrangler
+
+.dev.vars*
+!.dev.vars.example

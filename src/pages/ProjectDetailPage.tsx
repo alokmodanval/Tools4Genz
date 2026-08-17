@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import Container from '@/components/layout/Container';
@@ -6,12 +6,14 @@ import SEO from '@/components/SEO';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import ProjectGrid from '@/components/projects/ProjectGrid';
+import PurchaseModal from '@/components/projects/PurchaseModal';
 import { projects } from '@/data/projects';
 import NotFoundPage from './NotFoundPage';
 
 const ProjectDetailPage = () => {
   const { slug } = useParams();
   const { t } = useTranslation();
+  const [isPurchaseModalOpen, setIsPurchaseModalOpen] = useState(false);
   
   const project = projects.find(p => p.slug === slug);
   
@@ -22,7 +24,7 @@ const ProjectDetailPage = () => {
   const relatedProjects = projects.filter(p => p.category === project.category && p.id !== project.id).slice(0, 3);
 
   const handlePurchase = () => {
-    alert(t('project_detail.purchase_alert', 'Purchase flow coming soon!'));
+    setIsPurchaseModalOpen(true);
   };
 
   return (
@@ -136,6 +138,12 @@ const ProjectDetailPage = () => {
           )}
         </Container>
       </div>
+
+      <PurchaseModal
+        project={project}
+        isOpen={isPurchaseModalOpen}
+        onClose={() => setIsPurchaseModalOpen(false)}
+      />
     </>
   );
 };

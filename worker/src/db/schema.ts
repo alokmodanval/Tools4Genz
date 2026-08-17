@@ -136,3 +136,47 @@ export interface AdminCategoryRow {
   created_at: string;
   updated_at: string;
 }
+
+// ============================================================
+// Orders Table (Phase 8A)
+// ============================================================
+export interface OrderRow {
+  /** Internal numeric primary key */
+  id: number;
+  /** Public unique order reference, e.g. TG-ORD-XXXXXXXX */
+  order_id: string;
+  project_id: string;
+  project_slug: string;
+  project_title: string;
+  customer_name: string;
+  customer_email: string;
+  customer_phone: string | null;
+  amount: number;
+  currency: string;
+  /** Status: created | payment_pending | paid | payment_failed | cancelled | refunded */
+  status: string;
+  payment_provider: string;
+  provider_order_id: string | null;
+  provider_payment_id: string | null;
+  provider_signature: string | null;
+  notes: string | null;
+  paid_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export const ORDER_INSERT_COLUMNS = `
+  order_id, project_id, project_slug, project_title,
+  customer_name, customer_email, customer_phone,
+  amount, currency, status, payment_provider,
+  provider_order_id, provider_payment_id, provider_signature,
+  notes, paid_at, created_at, updated_at
+`;
+
+export const ORDER_INSERT_PLACEHOLDERS = `
+  ?, ?, ?, ?,
+  ?, ?, ?,
+  ?, ?, ?, ?,
+  ?, ?, ?,
+  ?, ?, ?, ?
+`;

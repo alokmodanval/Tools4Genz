@@ -5,6 +5,9 @@ import {
   AdminSessionRow,
   AdminToolRow,
   AdminUserRow,
+  ORDER_INSERT_COLUMNS,
+  ORDER_INSERT_PLACEHOLDERS,
+  OrderRow,
   REQUEST_INSERT_COLUMNS,
   REQUEST_INSERT_PLACEHOLDERS,
   RequestRow,
@@ -501,5 +504,173 @@ export const adminMetricsRepository = {
       completedRequests: completedReqRes?.c || 0,
       totalServices: svcRes?.c || 0,
     };
+  },
+};
+
+// ============================================================
+// Orders Repository (Phase 8A)
+// ============================================================
+export const orderRepository = {
+  async create(db: D1Database, row: Omit<OrderRow, 'id'>): Promise<number> {
+    const res = await db
+      .prepare(
+        `INSERT INTO orders (${ORDER_INSERT_COLUMNS})
+         VALUES (${ORDER_INSERT_PLACEHOLDERS})`
+      )
+      .bind(
+        row.order_id,
+        row.project_id,
+        row.project_slug,
+        row.project_title,
+        row.customer_name,
+        row.customer_email,
+        row.customer_phone || null,
+        row.amount,
+        row.currency || 'INR',
+        row.status || 'created',
+        row.payment_provider || 'razorpay',
+        row.provider_order_id || null,
+        row.provider_payment_id || null,
+        row.provider_signature || null,
+        row.notes || null,
+        row.paid_at || null,
+        row.created_at,
+        row.updated_at
+      )
+      .run();
+
+    return res.meta.last_row_id;
+  },
+
+  async findByOrderId(db: D1Database, orderId: string): Promise<OrderRow | null> {
+    return db
+      .prepare(`SELECT * FROM orders WHERE order_id = ? LIMIT 1`)
+      .bind(orderId)
+      .first<OrderRow>();
+  },
+
+  async findByProviderOrderId(db: D1Database, providerOrderId: string): Promise<OrderRow | null> {
+    return db
+      .prepare(`SELECT * FROM orders WHERE provider_order_id = ? LIMIT 1`)
+      .bind(providerOrderId)
+      .first<OrderRow>();
+  },
+
+  async updateProviderOrderId(
+    db: D1Database,
+    orderId: string,
+    providerOrderId: string,
+    status = 'payment_pending'
+  ): Promise<boolean> {
+    const now = new Date().toISOString();
+    const res = await db
+      .prepare(
+        `UPDATE orders
+         SET provider_order_id = ?, status = ?, updated_at = ?
+         WHERE order_id = ?`
+      )
+      .bind(providerOrderId, status, now, orderId)
+      .run();
+    return res.meta.changes > 0;
+  },
+
+  async markPaid(
+    db: D1Database,
+    orderId: string,
+    providerPaymentId: string,
+    providerSignature: string
+  ): Promise<boolean> {
+    const now = new Date().toISOString();
+    const res = await db
+      .prepare(
+        `UPDATE orders
+         SET status = 'paid',
+             provider_payment_id = ?,
+             provider_signature = ?,
+             paid_at = ?,
+             updated_at = ?
+         WHERE order_id = ?`
+      )
+      .bind(providerPaymentId, providerSignature, now, now, orderId)
+      .run();
+    return res.meta.changes > 0;
+  },
+
+  async updateStatus(
+    db: D1Database,
+    orderId: string,
+    status: string,
+    notes?: string
+  ): Promise<boolean> {
+    const now = new Date().toISOString();
+    const res = await db
+      .prepare(
+        `UPDATE orders
+         SET status = ?,
+             notes = COALESCE(?, notes),
+             updated_at = ?
+         WHERE order_id = ?`
+      )
+      .bind(status, notes || null, now, orderId)
+      .run();
+    return res.meta.changes > 0;
+  },
+
+  async findPublicOrder(
+    db: D1Database,
+    orderId: string
+  ): Promise<Pick<
+    OrderRow,
+    | 'order_id'
+    | 'project_id'
+    | 'project_slug'
+    | 'project_title'
+    | 'amount'
+    | 'currency'
+    | 'status'
+    | 'payment_provider'
+    | 'provider_payment_id'
+    | 'paid_at'
+    | 'created_at'
+  > | null> {
+    return db
+      .prepare(
+        `SELECT order_id, project_id, project_slug, project_title,
+                amount, currency, status, payment_provider,
+                provider_payment_id, paid_at, created_at
+         FROM orders
+         WHERE order_id = ?
+         LIMIT 1`
+      )
+      .bind(orderId)
+      .first<
+        Pick<
+          OrderRow,
+          | 'order_id'
+          | 'project_id'
+          | 'project_slug'
+          | 'project_title'
+          | 'amount'
+          | 'currency'
+          | 'status'
+          | 'payment_provider'
+          | 'provider_payment_id'
+          | 'paid_at'
+          | 'created_at'
+        >
+      >();
+  },
+
+  async findAllAdmin(db: D1Database, limit = 50, offset = 0): Promise<OrderRow[]> {
+    const res = await db
+      .prepare(`SELECT * FROM orders ORDER BY created_at DESC LIMIT ? OFFSET ?`)
+      .bind(limit, offset)
+      .all<OrderRow>();
+    return res.results || [];
+  },
+
+  async countAdmin(db: D1Database): Promise<number> {
+    const res = await db.prepare(`SELECT COUNT(*) as c FROM orders`).first<{ c: number }>();
+    return res?.c || 0;
   },
 };

@@ -35,15 +35,17 @@ function fromHex(hex: string): Uint8Array {
 }
 
 /**
- * Constant-time comparison of two byte arrays to prevent timing side-channel attacks.
+ * Constant-time comparison of two byte arrays or strings to prevent timing side-channel attacks.
  */
-function constantTimeEqual(a: Uint8Array, b: Uint8Array): boolean {
-  if (a.length !== b.length) {
+export function constantTimeEqual(a: Uint8Array | string, b: Uint8Array | string): boolean {
+  const bytesA = typeof a === 'string' ? encoder.encode(a) : a;
+  const bytesB = typeof b === 'string' ? encoder.encode(b) : b;
+  if (bytesA.length !== bytesB.length) {
     return false;
   }
   let diff = 0;
-  for (let i = 0; i < a.length; i++) {
-    diff |= a[i] ^ b[i];
+  for (let i = 0; i < bytesA.length; i++) {
+    diff |= bytesA[i] ^ bytesB[i];
   }
   return diff === 0;
 }

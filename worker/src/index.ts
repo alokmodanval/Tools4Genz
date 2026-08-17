@@ -24,6 +24,11 @@ import {
   handleUpdateAdminService,
   handleUpdateAdminTool,
 } from './routes/admin';
+import {
+  handleCreateOrder,
+  handleGetOrderById,
+  handleVerifyPayment,
+} from './routes/orders';
 import { error } from './utils/api';
 import { requireAuth } from './utils/auth';
 import { buildCorsHeaders } from './utils/cors';
@@ -31,6 +36,8 @@ import { buildCorsHeaders } from './utils/cors';
 export interface Env {
   DB?: D1Database;
   ALLOWED_ORIGINS?: string;
+  RAZORPAY_KEY_ID?: string;
+  RAZORPAY_KEY_SECRET?: string;
 }
 
 export default {
@@ -116,6 +123,32 @@ export default {
           return applyCors(error('INTERNAL_ERROR', 'Database is not configured', 500));
         }
         return applyCors(await handleGetRequestStatus(publicRequestMatch[1], env.DB));
+      }
+
+      // POST /api/orders (Public order creation)
+      if (path === '/api/orders' && method === 'POST') {
+        if (!env.DB) {
+          return applyCors(error('INTERNAL_ERROR', 'Database is not configured', 500));
+        }
+        return applyCors(await handleCreateOrder(request, env.DB, env));
+      }
+
+      // POST /api/orders/:orderId/verify-payment (Payment signature verification)
+      const orderVerifyMatch = path.match(/^\/api\/orders\/([^/]+)\/verify-payment$/);
+      if (orderVerifyMatch && method === 'POST') {
+        if (!env.DB) {
+          return applyCors(error('INTERNAL_ERROR', 'Database is not configured', 500));
+        }
+        return applyCors(await handleVerifyPayment(request, orderVerifyMatch[1], env.DB, env));
+      }
+
+      // GET /api/orders/:orderId (Public safe order status)
+      const publicOrderMatch = path.match(/^\/api\/orders\/([^/]+)$/);
+      if (publicOrderMatch && method === 'GET') {
+        if (!env.DB) {
+          return applyCors(error('INTERNAL_ERROR', 'Database is not configured', 500));
+        }
+        return applyCors(await handleGetOrderById(publicOrderMatch[1], env.DB));
       }
 
       // ----------------------------------------------------
@@ -224,7 +257,10 @@ export default {
         (path === '/api/auth/logout' && method !== 'POST') ||
         (path === '/api/auth/me' && method !== 'GET') ||
         (path === '/api/requests' && method !== 'POST') ||
-        (publicRequestMatch && method !== 'GET')
+        (publicRequestMatch && method !== 'GET') ||
+        (path === '/api/orders' && method !== 'POST') ||
+        (orderVerifyMatch && method !== 'POST') ||
+        (publicOrderMatch && method !== 'GET')
       ) {
         return applyCors(error('METHOD_NOT_ALLOWED', 'Method not allowed', 405));
       }
