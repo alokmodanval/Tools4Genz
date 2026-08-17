@@ -5,56 +5,20 @@ import { BaseRequestData, RequestStatus } from '@/types/request';
 import { toolRegistry } from '@/tools/registry';
 import { projects as initialProjects } from '@/data/projects';
 import { services as initialServices } from '@/data/services';
-import { toolCategories as initialToolCategories, projectCategories as initialProjectCategories } from '@/data/categories';
+import {
+  toolCategories as initialToolCategories,
+  projectCategories as initialProjectCategories,
+} from '@/data/categories';
 
-// Local storage or sessionStorage keys for local mockup persistence
-const STORAGE_KEYS = {
-  TOOLS: 'tools4genz_admin_mock_tools',
-  PROJECTS: 'tools4genz_admin_mock_projects',
-  SERVICES: 'tools4genz_admin_mock_services',
-  CATEGORIES: 'tools4genz_admin_mock_categories',
-  REQUESTS: 'tools4genz_admin_mock_requests',
-};
+// Base API endpoint URL
+const API_BASE = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/+$/, '') + '/api';
 
 export interface AdminRequest extends BaseRequestData {
   requestId: string;
   status: RequestStatus;
   createdAt: string;
+  updatedAt?: string;
 }
-
-// Seed mock requests
-const SEED_REQUESTS: AdminRequest[] = [
-  {
-    requestId: 'TG-REQ-54EF6A20',
-    requestType: 'student-project',
-    status: 'submitted',
-    name: 'Alok Kumar',
-    email: 'alok@student.dev',
-    phone: '+91 98765 43210',
-    preferredContactMethod: 'whatsapp',
-    projectType: 'Final Year Project',
-    technology: 'Python, ML',
-    description: 'A comprehensive review and recommendation system using collaborative filtering.',
-    budget: '₹3,000–₹5,000',
-    deadline: '2026-10-15',
-    createdAt: '2026-08-13T04:05:48.538Z',
-  },
-  {
-    requestId: 'TG-REQ-6AD87AF7',
-    requestType: 'client-website',
-    status: 'reviewing',
-    name: 'John Doe',
-    email: 'john@doe-corp.com',
-    phone: '+1 555 123 4567',
-    preferredContactMethod: 'email',
-    projectType: 'Business Website',
-    technology: 'React, Tailwind, Cloudflare Pages',
-    description: 'We need a highly responsive portfolio and pricing calculator website for our logistics firm.',
-    budget: '₹25,000–₹50,000',
-    deadline: '2026-09-01',
-    createdAt: '2026-08-13T04:31:03.768Z',
-  }
-];
 
 export interface AdminCategory {
   type: 'tool' | 'project' | 'service';
@@ -74,221 +38,505 @@ export interface AdminDashboardMetrics {
   totalServices: number;
 }
 
-class AdminDataStore {
-  private load<T>(key: string, defaultValue: T): T {
-    try {
-      const data = sessionStorage.getItem(key);
-      return data ? JSON.parse(data) : defaultValue;
-    } catch {
-      return defaultValue;
-    }
-  }
-
-  private save<T>(key: string, data: T): void {
-    try {
-      sessionStorage.setItem(key, JSON.stringify(data));
-    } catch {
-      // sessionStorage may be unavailable (private mode / quota exceeded)
-    }
-  }
-
-  getTools(): Tool[] {
-    const list = this.load<Tool[]>(STORAGE_KEYS.TOOLS, []);
-    if (list.length === 0) {
-      // Seed on first load
-      const stripped = toolRegistry.map(t => {
-        // Exclude lazy component to keep sessionStorage clean
-        const rest = { ...t };
-        delete rest.component;
-        return rest as Tool;
-      });
-      this.save(STORAGE_KEYS.TOOLS, stripped);
-      return stripped;
-    }
-    return list;
-  }
-
-  saveTool(tool: Tool): void {
-    const tools = this.getTools();
-    const idx = tools.findIndex(t => t.id === tool.id);
-    if (idx >= 0) {
-      tools[idx] = tool;
-    } else {
-      tools.push(tool);
-    }
-    this.save(STORAGE_KEYS.TOOLS, tools);
-  }
-
-  getProjects(): Project[] {
-    const list = this.load<Project[]>(STORAGE_KEYS.PROJECTS, []);
-    if (list.length === 0) {
-      this.save(STORAGE_KEYS.PROJECTS, initialProjects);
-      return initialProjects;
-    }
-    return list;
-  }
-
-  saveProject(project: Project): void {
-    const list = this.getProjects();
-    const idx = list.findIndex(p => p.id === project.id);
-    if (idx >= 0) {
-      list[idx] = project;
-    } else {
-      list.push(project);
-    }
-    this.save(STORAGE_KEYS.PROJECTS, list);
-  }
-
-  getServices(): Service[] {
-    const list = this.load<Service[]>(STORAGE_KEYS.SERVICES, []);
-    if (list.length === 0) {
-      this.save(STORAGE_KEYS.SERVICES, initialServices);
-      return initialServices;
-    }
-    return list;
-  }
-
-  saveService(service: Service): void {
-    const list = this.getServices();
-    const idx = list.findIndex(s => s.id === service.id);
-    if (idx >= 0) {
-      list[idx] = service;
-    } else {
-      list.push(service);
-    }
-    this.save(STORAGE_KEYS.SERVICES, list);
-  }
-
-  getCategories(): AdminCategory[] {
-    const list = this.load<AdminCategory[]>(STORAGE_KEYS.CATEGORIES, []);
-    if (list.length === 0) {
-      const toolCats: AdminCategory[] = initialToolCategories.map(c => ({
-        type: 'tool',
-        id: c.id,
-        name: c.name,
-        icon: c.icon,
-        count: c.count
-      }));
-      const projCats: AdminCategory[] = initialProjectCategories.map(c => ({
-        type: 'project',
-        id: c.id,
-        name: c.name,
-        icon: c.icon,
-        count: c.count
-      }));
-      const serviceCats: AdminCategory[] = [
-        { type: 'service', id: 'Development', name: 'Development', icon: '💻', count: 2 },
-        { type: 'service', id: 'Enterprise', name: 'Enterprise', icon: '⚙️', count: 1 },
-        { type: 'service', id: 'AI/ML', name: 'AI/ML', icon: '🧠', count: 1 },
-        { type: 'service', id: 'Education', name: 'Education', icon: '🎓', count: 1 },
-        { type: 'service', id: 'Consulting', name: 'Consulting', icon: '📈', count: 1 },
-      ];
-      const merged = [...toolCats, ...projCats, ...serviceCats];
-      this.save(STORAGE_KEYS.CATEGORIES, merged);
-      return merged;
-    }
-    return list;
-  }
-
-  saveCategory(cat: AdminCategory): void {
-    const list = this.getCategories();
-    const idx = list.findIndex(c => c.id === cat.id && c.type === cat.type);
-    if (idx >= 0) {
-      list[idx] = cat;
-    } else {
-      list.push(cat);
-    }
-    this.save(STORAGE_KEYS.CATEGORIES, list);
-  }
-
-  getRequests(): AdminRequest[] {
-    const list = this.load<AdminRequest[]>(STORAGE_KEYS.REQUESTS, []);
-    if (list.length === 0) {
-      this.save(STORAGE_KEYS.REQUESTS, SEED_REQUESTS);
-      return SEED_REQUESTS;
-    }
-    return list;
-  }
-
-  saveRequest(request: AdminRequest): void {
-    const list = this.getRequests();
-    const idx = list.findIndex(r => r.requestId === request.requestId);
-    if (idx >= 0) {
-      list[idx] = request;
-    } else {
-      list.push(request);
-    }
-    this.save(STORAGE_KEYS.REQUESTS, list);
-  }
+export interface AdminUser {
+  userId: number | string;
+  email: string;
+  role: string;
+  status: string;
 }
 
-export const adminStore = new AdminDataStore();
+/**
+ * Generic authenticated API fetch wrapper.
+ * Always sends HttpOnly session cookies via credentials: "include".
+ */
+export async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const url = `${API_BASE}${path.startsWith('/') ? path : `/${path}`}`;
+  const response = await fetch(url, {
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+    ...options,
+  });
 
+  if (response.status === 401) {
+    const errorData = await response.json().catch(() => ({}));
+    const message = errorData.error?.message || 'Authentication required or session expired';
+    authStore.isAuthenticated = false;
+    authStore.currentUser = null;
+    throw new Error(message);
+  }
+
+  if (response.status === 403) {
+    const errorData = await response.json().catch(() => ({}));
+    const message = errorData.error?.message || 'Access denied';
+    throw new Error(message);
+  }
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    const message = errorData.error?.message || `Request failed with status ${response.status}`;
+    throw new Error(message);
+  }
+
+  const jsonResult = await response.json();
+  // Worker standard response envelope: { success: true, data: ... }
+  if (jsonResult && typeof jsonResult === 'object' && 'data' in jsonResult) {
+    return jsonResult.data as T;
+  }
+  return jsonResult as T;
+}
+
+// Initial in-memory mock datasets (used as initial synchronous state & fallback)
+const initialToolList: Tool[] = toolRegistry.map((t) => {
+  const rest = { ...t };
+  delete rest.component;
+  return rest as Tool;
+});
+
+const initialCategoryList: AdminCategory[] = [
+  ...initialToolCategories.map((c) => ({
+    type: 'tool' as const,
+    id: c.id,
+    name: c.name,
+    icon: c.icon,
+    count: c.count,
+  })),
+  ...initialProjectCategories.map((c) => ({
+    type: 'project' as const,
+    id: c.id,
+    name: c.name,
+    icon: c.icon,
+    count: c.count,
+  })),
+  { type: 'service' as const, id: 'Development', name: 'Development', icon: '💻', count: 2 },
+  { type: 'service' as const, id: 'Enterprise', name: 'Enterprise', icon: '⚙️', count: 1 },
+  { type: 'service' as const, id: 'AI/ML', name: 'AI/ML', icon: '🧠', count: 1 },
+  { type: 'service' as const, id: 'Education', name: 'Education', icon: '🎓', count: 1 },
+  { type: 'service' as const, id: 'Consulting', name: 'Consulting', icon: '📈', count: 1 },
+];
+
+let toolCache: Tool[] = [...initialToolList];
+let projectCache: Project[] = [...initialProjects];
+let serviceCache: Service[] = [...initialServices];
+let categoryCache: AdminCategory[] = [...initialCategoryList];
+let requestCache: AdminRequest[] = [];
+
+// ============================================================
+// Tool Admin Service
+// ============================================================
 export const ToolAdminService = {
-  getAll: (): Tool[] => adminStore.getTools(),
-  save: (tool: Tool): void => adminStore.saveTool(tool),
-  delete: (id: string): void => {
-    const list = adminStore.getTools().filter(t => t.id !== id);
-    sessionStorage.setItem(STORAGE_KEYS.TOOLS, JSON.stringify(list));
-  }
-};
+  getAll(): Tool[] {
+    return toolCache;
+  },
 
-export const ProjectAdminService = {
-  getAll: (): Project[] => adminStore.getProjects(),
-  save: (proj: Project): void => adminStore.saveProject(proj),
-  delete: (id: string): void => {
-    const list = adminStore.getProjects().filter(p => p.id !== id);
-    sessionStorage.setItem(STORAGE_KEYS.PROJECTS, JSON.stringify(list));
-  }
-};
-
-export const ServiceAdminService = {
-  getAll: (): Service[] => adminStore.getServices(),
-  save: (svc: Service): void => adminStore.saveService(svc),
-  delete: (id: string): void => {
-    const list = adminStore.getServices().filter(s => s.id !== id);
-    sessionStorage.setItem(STORAGE_KEYS.SERVICES, JSON.stringify(list));
-  }
-};
-
-export const CategoryAdminService = {
-  getAll: (): AdminCategory[] => adminStore.getCategories(),
-  save: (cat: AdminCategory): void => adminStore.saveCategory(cat),
-  delete: (id: string, type: 'tool' | 'project' | 'service'): void => {
-    const list = adminStore.getCategories().filter(c => !(c.id === id && c.type === type));
-    sessionStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(list));
-  }
-};
-
-export const RequestAdminService = {
-  getAll: (): AdminRequest[] => adminStore.getRequests(),
-  getById: (requestId: string): AdminRequest | undefined => adminStore.getRequests().find(r => r.requestId === requestId),
-  save: (req: AdminRequest): void => adminStore.saveRequest(req),
-  updateStatus: (requestId: string, status: RequestStatus): void => {
-    const list = adminStore.getRequests();
-    const idx = list.findIndex(r => r.requestId === requestId);
-    if (idx >= 0) {
-      list[idx].status = status;
-      sessionStorage.setItem(STORAGE_KEYS.REQUESTS, JSON.stringify(list));
+  async fetchAll(): Promise<Tool[]> {
+    try {
+      const live = await apiFetch<Tool[]>('/admin/tools');
+      if (Array.isArray(live) && live.length > 0) {
+        toolCache = live;
+        return live;
+      }
+      // If DB is empty, seed initial tools
+      for (const t of initialToolList) {
+        await apiFetch('/admin/tools', {
+          method: 'POST',
+          body: JSON.stringify(t),
+        }).catch(() => {});
+      }
+      const seeded = await apiFetch<Tool[]>('/admin/tools').catch(() => initialToolList);
+      toolCache = Array.isArray(seeded) && seeded.length > 0 ? seeded : initialToolList;
+      return toolCache;
+    } catch {
+      return toolCache;
     }
-  }
+  },
+
+  async save(tool: Tool): Promise<void> {
+    const idx = toolCache.findIndex((t) => t.id === tool.id);
+    if (idx >= 0) {
+      toolCache[idx] = tool;
+    } else {
+      toolCache.unshift(tool);
+    }
+    await apiFetch('/admin/tools', {
+      method: 'POST',
+      body: JSON.stringify(tool),
+    });
+  },
+
+  async update(tool: Tool): Promise<void> {
+    const idx = toolCache.findIndex((t) => t.id === tool.id);
+    if (idx >= 0) {
+      toolCache[idx] = tool;
+    }
+    await apiFetch(`/admin/tools/${tool.id}`, {
+      method: 'PUT',
+      body: JSON.stringify(tool),
+    });
+  },
+
+  async delete(id: string): Promise<void> {
+    toolCache = toolCache.filter((t) => t.id !== id);
+    await apiFetch(`/admin/tools/${id}`, {
+      method: 'DELETE',
+    });
+  },
 };
 
-export const AdminDashboardService = {
-  getMetrics: (): AdminDashboardMetrics => {
-    const tools = ToolAdminService.getAll();
-    const projs = ProjectAdminService.getAll();
-    const reqs = RequestAdminService.getAll();
-    const svcs = ServiceAdminService.getAll();
+// ============================================================
+// Project Admin Service
+// ============================================================
+export const ProjectAdminService = {
+  getAll(): Project[] {
+    return projectCache;
+  },
 
+  async fetchAll(): Promise<Project[]> {
+    try {
+      const live = await apiFetch<Project[]>('/admin/projects');
+      if (Array.isArray(live) && live.length > 0) {
+        projectCache = live;
+        return live;
+      }
+      // Seed if DB is empty
+      for (const p of initialProjects) {
+        await apiFetch('/admin/projects', {
+          method: 'POST',
+          body: JSON.stringify(p),
+        }).catch(() => {});
+      }
+      const seeded = await apiFetch<Project[]>('/admin/projects').catch(() => initialProjects);
+      projectCache = Array.isArray(seeded) && seeded.length > 0 ? seeded : initialProjects;
+      return projectCache;
+    } catch {
+      return projectCache;
+    }
+  },
+
+  async save(proj: Project): Promise<void> {
+    const idx = projectCache.findIndex((p) => p.id === proj.id);
+    if (idx >= 0) {
+      projectCache[idx] = proj;
+    } else {
+      projectCache.unshift(proj);
+    }
+    await apiFetch('/admin/projects', {
+      method: 'POST',
+      body: JSON.stringify(proj),
+    });
+  },
+
+  async update(proj: Project): Promise<void> {
+    const idx = projectCache.findIndex((p) => p.id === proj.id);
+    if (idx >= 0) {
+      projectCache[idx] = proj;
+    }
+    await apiFetch(`/admin/projects/${proj.id}`, {
+      method: 'PUT',
+      body: JSON.stringify(proj),
+    });
+  },
+
+  async delete(id: string): Promise<void> {
+    projectCache = projectCache.filter((p) => p.id !== id);
+    await apiFetch(`/admin/projects/${id}`, {
+      method: 'DELETE',
+    });
+  },
+};
+
+// ============================================================
+// Service Admin Service
+// ============================================================
+export const ServiceAdminService = {
+  getAll(): Service[] {
+    return serviceCache;
+  },
+
+  async fetchAll(): Promise<Service[]> {
+    try {
+      const live = await apiFetch<Service[]>('/admin/services');
+      if (Array.isArray(live) && live.length > 0) {
+        serviceCache = live;
+        return live;
+      }
+      // Seed if DB is empty
+      for (const s of initialServices) {
+        await apiFetch('/admin/services', {
+          method: 'POST',
+          body: JSON.stringify(s),
+        }).catch(() => {});
+      }
+      const seeded = await apiFetch<Service[]>('/admin/services').catch(() => initialServices);
+      serviceCache = Array.isArray(seeded) && seeded.length > 0 ? seeded : initialServices;
+      return serviceCache;
+    } catch {
+      return serviceCache;
+    }
+  },
+
+  async save(svc: Service): Promise<void> {
+    const idx = serviceCache.findIndex((s) => s.id === svc.id);
+    if (idx >= 0) {
+      serviceCache[idx] = svc;
+    } else {
+      serviceCache.unshift(svc);
+    }
+    await apiFetch('/admin/services', {
+      method: 'POST',
+      body: JSON.stringify(svc),
+    });
+  },
+
+  async update(svc: Service): Promise<void> {
+    const idx = serviceCache.findIndex((s) => s.id === svc.id);
+    if (idx >= 0) {
+      serviceCache[idx] = svc;
+    }
+    await apiFetch(`/admin/services/${svc.id}`, {
+      method: 'PUT',
+      body: JSON.stringify(svc),
+    });
+  },
+
+  async delete(id: string): Promise<void> {
+    serviceCache = serviceCache.filter((s) => s.id !== id);
+    await apiFetch(`/admin/services/${id}`, {
+      method: 'DELETE',
+    });
+  },
+};
+
+// ============================================================
+// Category Admin Service
+// ============================================================
+export const CategoryAdminService = {
+  getAll(): AdminCategory[] {
+    return categoryCache;
+  },
+
+  async fetchAll(): Promise<AdminCategory[]> {
+    try {
+      const live = await apiFetch<AdminCategory[]>('/admin/categories');
+      if (Array.isArray(live) && live.length > 0) {
+        categoryCache = live;
+        return live;
+      }
+      // Seed if DB is empty
+      for (const c of initialCategoryList) {
+        await apiFetch('/admin/categories', {
+          method: 'POST',
+          body: JSON.stringify(c),
+        }).catch(() => {});
+      }
+      const seeded = await apiFetch<AdminCategory[]>('/admin/categories').catch(() => initialCategoryList);
+      categoryCache = Array.isArray(seeded) && seeded.length > 0 ? seeded : initialCategoryList;
+      return categoryCache;
+    } catch {
+      return categoryCache;
+    }
+  },
+
+  async save(cat: AdminCategory): Promise<void> {
+    const idx = categoryCache.findIndex((c) => c.id === cat.id && c.type === cat.type);
+    if (idx >= 0) {
+      categoryCache[idx] = cat;
+    } else {
+      categoryCache.push(cat);
+    }
+    await apiFetch('/admin/categories', {
+      method: 'POST',
+      body: JSON.stringify(cat),
+    });
+  },
+
+  async update(cat: AdminCategory): Promise<void> {
+    const idx = categoryCache.findIndex((c) => c.id === cat.id && c.type === cat.type);
+    if (idx >= 0) {
+      categoryCache[idx] = cat;
+    }
+    await apiFetch(`/admin/categories/${cat.id}`, {
+      method: 'PUT',
+      body: JSON.stringify(cat),
+    });
+  },
+
+  async delete(id: string, type?: 'tool' | 'project' | 'service'): Promise<void> {
+    categoryCache = categoryCache.filter((c) => !(c.id === id && (!type || c.type === type)));
+    await apiFetch(`/admin/categories/${id}${type ? `?type=${type}` : ''}`, {
+      method: 'DELETE',
+    });
+  },
+};
+
+// ============================================================
+// Request Admin Service
+// ============================================================
+export const RequestAdminService = {
+  getAll(): AdminRequest[] {
+    return requestCache;
+  },
+
+  async fetchAll(): Promise<AdminRequest[]> {
+    try {
+      const live = await apiFetch<AdminRequest[]>('/admin/requests');
+      if (Array.isArray(live)) {
+        requestCache = live;
+        return live;
+      }
+      return requestCache;
+    } catch {
+      return requestCache;
+    }
+  },
+
+  async getById(requestId: string): Promise<AdminRequest | undefined> {
+    try {
+      return await apiFetch<AdminRequest>(`/admin/requests/${requestId}`);
+    } catch {
+      return requestCache.find((r) => r.requestId === requestId);
+    }
+  },
+
+  async updateStatus(requestId: string, status: RequestStatus): Promise<void> {
+    const idx = requestCache.findIndex((r) => r.requestId === requestId);
+    if (idx >= 0) {
+      requestCache[idx] = { ...requestCache[idx], status };
+    }
+    await apiFetch(`/admin/requests/${requestId}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    });
+  },
+};
+
+// ============================================================
+// Admin Dashboard Service
+// ============================================================
+export const AdminDashboardService = {
+  getMetrics(): AdminDashboardMetrics {
     return {
-      totalTools: tools.length,
-      activeTools: tools.filter(t => t.status === 'active').length,
-      totalProjects: projs.length,
-      featuredProjects: projs.filter(p => p.featured).length,
-      pendingRequests: reqs.filter(r => r.status === 'submitted' || r.status === 'reviewing').length,
-      completedRequests: reqs.filter(r => r.status === 'completed').length,
-      totalServices: svcs.length,
+      totalTools: toolCache.length,
+      activeTools: toolCache.filter((t) => t.status === 'active').length,
+      totalProjects: projectCache.length,
+      featuredProjects: projectCache.filter((p) => p.featured).length,
+      pendingRequests: requestCache.filter(
+        (r) => r.status === 'submitted' || r.status === 'reviewing'
+      ).length,
+      completedRequests: requestCache.filter((r) => r.status === 'completed').length,
+      totalServices: serviceCache.length,
     };
-  }
+  },
+
+  async fetchMetrics(): Promise<AdminDashboardMetrics> {
+    try {
+      return await apiFetch<AdminDashboardMetrics>('/admin/dashboard/metrics');
+    } catch {
+      return this.getMetrics();
+    }
+  },
+};
+
+// ============================================================
+// Auth Store
+// ============================================================
+export const authStore = {
+  currentUser: null as AdminUser | null,
+  isAuthenticated: false,
+  isInitialized: false,
+
+  async login(email: string, password: string): Promise<AdminUser> {
+    const res = await apiFetch<{ userId: number | string; email: string; role?: string; status?: string }>(
+      '/auth/login',
+      {
+        method: 'POST',
+        body: JSON.stringify({ email, password }),
+      }
+    );
+
+    const user: AdminUser = {
+      userId: res.userId,
+      email: res.email,
+      role: res.role || 'admin',
+      status: res.status || 'active',
+    };
+
+    authStore.isAuthenticated = true;
+    authStore.currentUser = user;
+    authStore.isInitialized = true;
+    return user;
+  },
+
+  async logout(): Promise<void> {
+    try {
+      await apiFetch<void>('/auth/logout', { method: 'POST' });
+    } finally {
+      authStore.isAuthenticated = false;
+      authStore.currentUser = null;
+      authStore.isInitialized = true;
+    }
+  },
+
+  async bootstrap(email: string, password: string): Promise<AdminUser> {
+    const res = await apiFetch<{ userId: number | string; email: string; role?: string; status?: string }>(
+      '/auth/bootstrap',
+      {
+        method: 'POST',
+        body: JSON.stringify({ email, password }),
+      }
+    );
+
+    const user: AdminUser = {
+      userId: res.userId,
+      email: res.email,
+      role: res.role || 'admin',
+      status: res.status || 'active',
+    };
+
+    authStore.isAuthenticated = true;
+    authStore.currentUser = user;
+    authStore.isInitialized = true;
+    return user;
+  },
+
+  async me(): Promise<AdminUser | null> {
+    try {
+      const res = await apiFetch<AdminUser>('/auth/me');
+      authStore.isAuthenticated = true;
+      authStore.currentUser = res;
+      authStore.isInitialized = true;
+      return res;
+    } catch {
+      authStore.isAuthenticated = false;
+      authStore.currentUser = null;
+      authStore.isInitialized = true;
+      return null;
+    }
+  },
+};
+
+// ============================================================
+// Mock Store (Backward Compatibility helper)
+// ============================================================
+export const mockStore = {
+  tools: toolCache,
+  projects: projectCache,
+  services: serviceCache,
+  categories: categoryCache,
+  getTools: () => toolCache,
+  saveTool: (t: Tool) => ToolAdminService.save(t),
+  getProjects: () => projectCache,
+  saveProject: (p: Project) => ProjectAdminService.save(p),
+  getServices: () => serviceCache,
+  saveService: (s: Service) => ServiceAdminService.save(s),
+  getCategories: () => categoryCache,
+  saveCategory: (c: AdminCategory) => CategoryAdminService.save(c),
+  getRequests: () => requestCache,
+  saveRequest: (r: AdminRequest) => {
+    const idx = requestCache.findIndex((x) => x.requestId === r.requestId);
+    if (idx >= 0) requestCache[idx] = r;
+    else requestCache.push(r);
+  },
 };

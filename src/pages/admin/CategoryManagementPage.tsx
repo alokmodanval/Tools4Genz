@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { CategoryAdminService, AdminCategory } from '@/services/adminService';
 import { AdminField } from '@/components/admin/FormPrimitives';
@@ -20,9 +20,30 @@ export const CategoryManagementPage: React.FC = () => {
     type: 'tool' as 'tool' | 'project' | 'service',
   });
 
-  const loadData = () => {
-    setCategories(CategoryAdminService.getAll());
+  const loadData = async () => {
+    try {
+      const live = await CategoryAdminService.fetchAll();
+      setCategories(live);
+    } catch {
+      setCategories(CategoryAdminService.getAll());
+    }
   };
+
+  useEffect(() => {
+    let isMounted = true;
+    CategoryAdminService.fetchAll().then((live) => {
+      if (isMounted) {
+        setCategories(live);
+      }
+    }).catch(() => {
+      if (isMounted) {
+        setCategories(CategoryAdminService.getAll());
+      }
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const handleEdit = (cat: AdminCategory) => {
     setEditingCat(cat);
@@ -51,14 +72,14 @@ export const CategoryManagementPage: React.FC = () => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleDelete = (id: string, type: 'tool' | 'project' | 'service') => {
+  const handleDelete = async (id: string, type: 'tool' | 'project' | 'service') => {
     if (confirm(t('admin.confirmDeleteCategory', 'Are you sure you want to delete this category?'))) {
-      CategoryAdminService.delete(id, type);
-      loadData();
+      await CategoryAdminService.delete(id, type);
+      await loadData();
     }
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name || !formData.id) return;
 
@@ -70,9 +91,9 @@ export const CategoryManagementPage: React.FC = () => {
       count: editingCat ? editingCat.count : 0,
     };
 
-    CategoryAdminService.save(savedCat);
+    await CategoryAdminService.save(savedCat);
     setModalOpen(false);
-    loadData();
+    await loadData();
   };
 
   const filteredCategories = categories.filter(c => {

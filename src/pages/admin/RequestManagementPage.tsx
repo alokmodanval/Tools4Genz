@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { RequestAdminService, AdminRequest } from '@/services/adminService';
 import { RequestStatus } from '@/types/request';
@@ -12,13 +12,34 @@ export const RequestManagementPage: React.FC = () => {
   // Detail Modal State
   const [activeRequest, setActiveRequest] = useState<AdminRequest | null>(null);
 
-  const refreshRequests = () => {
-    setRequests(RequestAdminService.getAll());
+  const refreshRequests = async () => {
+    try {
+      const live = await RequestAdminService.fetchAll();
+      setRequests(live);
+    } catch {
+      setRequests(RequestAdminService.getAll());
+    }
   };
 
-  const handleStatusChange = (requestId: string, newStatus: RequestStatus) => {
-    RequestAdminService.updateStatus(requestId, newStatus);
-    refreshRequests();
+  useEffect(() => {
+    let isMounted = true;
+    RequestAdminService.fetchAll().then((live) => {
+      if (isMounted) {
+        setRequests(live);
+      }
+    }).catch(() => {
+      if (isMounted) {
+        setRequests(RequestAdminService.getAll());
+      }
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const handleStatusChange = async (requestId: string, newStatus: RequestStatus) => {
+    await RequestAdminService.updateStatus(requestId, newStatus);
+    await refreshRequests();
     if (activeRequest && activeRequest.requestId === requestId) {
       setActiveRequest(prev => (prev ? { ...prev, status: newStatus } : prev));
     }

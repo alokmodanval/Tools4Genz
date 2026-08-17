@@ -359,7 +359,20 @@
       "categories": "Manage Categories",
       "requests": "Manage Requests",
       "settings": "Settings",
-      "backToSite": "Back to Public Site"
+      "backToSite": "Back to Public Site",
+      "logout": "Sign Out"
+    },
+    "login": {
+      "title": "Sign in to Admin Dashboard",
+      "subtitle": "Protected administration panel for Tools4Genz operators.",
+      "emailLabel": "Email Address",
+      "passwordLabel": "Password",
+      "submitButton": "Sign In to Dashboard",
+      "signingIn": "Signing In...",
+      "checkingSession": "Verifying session...",
+      "requiredFields": "Please enter both email and password.",
+      "invalidCredentials": "Invalid email or password. Please try again.",
+      "securityNote": "Session secured with HttpOnly cookies and Cloudflare D1 verification."
     },
     "dashboard": {
       "title": "Dashboard Overview",
@@ -375,6 +388,8 @@
       "platformHealth": "System Performance",
       "workerStatus": "Cloudflare Worker Status",
       "d1Status": "Cloudflare D1 Connection",
+      "secureSessionBadge": "Authenticated Session Active — Cloudflare D1 Backend Synced",
+      "metricsLiveNote": "Platform metrics are synchronized with Cloudflare D1 database and Worker API.",
       "metricsDemoNote": "System metrics above are sourced safely from current session storage models. Real traffic analytics integration is reserved for later iterations.",
       "shortcuts": "Quick Shortcuts",
       "viewRequests": "Review Pending Requests",

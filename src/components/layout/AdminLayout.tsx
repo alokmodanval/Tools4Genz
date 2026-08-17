@@ -1,11 +1,16 @@
 import React, { useState } from 'react';
-import { Link, Outlet, useLocation } from 'react-router-dom';
+import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { authStore } from '@/services/adminService';
 
 export const AdminLayout: React.FC = () => {
   const { t, i18n } = useTranslation();
   const location = useLocation();
+  const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  const currentUser = authStore.currentUser;
 
   const menuItems = [
     { path: '/admin/dashboard', label: t('admin.nav.dashboard', 'Dashboard'), icon: '📊' },
@@ -22,6 +27,18 @@ export const AdminLayout: React.FC = () => {
     i18n.changeLanguage(nextLang);
   };
 
+  const handleLogout = async () => {
+    setLoggingOut(true);
+    try {
+      await authStore.logout();
+      navigate('/admin/login', { replace: true });
+    } catch {
+      navigate('/admin/login', { replace: true });
+    } finally {
+      setLoggingOut(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex text-gray-800 dark:text-gray-100">
       {/* Sidebar - Desktop */}
@@ -32,16 +49,17 @@ export const AdminLayout: React.FC = () => {
           </Link>
         </div>
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-          {menuItems.map(item => {
+          {menuItems.map((item) => {
             const isActive = location.pathname === item.path;
             return (
               <Link
                 key={item.path}
                 to={item.path}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${isActive
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
+                  isActive
                     ? 'bg-primary-50 dark:bg-primary-950/40 text-primary-600 dark:text-primary-400 border border-primary-200/50 dark:border-primary-800/40'
                     : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 border border-transparent'
-                  }`}
+                }`}
               >
                 <span>{item.icon}</span>
                 {item.label}
@@ -49,8 +67,18 @@ export const AdminLayout: React.FC = () => {
             );
           })}
         </nav>
-        <div className="p-4 border-t border-gray-200 dark:border-gray-700">
-          <Link to="/" className="flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-xl text-sm font-semibold transition-all">
+        <div className="p-4 border-t border-gray-200 dark:border-gray-700 space-y-2">
+          <button
+            onClick={handleLogout}
+            disabled={loggingOut}
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-red-50 dark:bg-red-950/30 hover:bg-red-100 dark:hover:bg-red-900/40 text-red-600 dark:text-red-400 rounded-xl text-sm font-semibold transition-all disabled:opacity-50"
+          >
+            <span>🚪</span> {t('admin.nav.logout', 'Sign Out')}
+          </button>
+          <Link
+            to="/"
+            className="flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-xl text-sm font-semibold transition-all"
+          >
             &larr; {t('admin.nav.backToSite', 'Back to Public Site')}
           </Link>
         </div>
@@ -65,16 +93,17 @@ export const AdminLayout: React.FC = () => {
               <button onClick={() => setSidebarOpen(false)} className="text-xl p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">✕</button>
             </div>
             <nav className="flex-1 p-4 space-y-1 overflow-y-auto" onClick={() => setSidebarOpen(false)}>
-              {menuItems.map(item => {
+              {menuItems.map((item) => {
                 const isActive = location.pathname === item.path;
                 return (
                   <Link
                     key={item.path}
                     to={item.path}
-                    className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${isActive
+                    className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
+                      isActive
                         ? 'bg-primary-50 dark:bg-primary-950/40 text-primary-600 dark:text-primary-400 border border-primary-200/50 dark:border-primary-800/40'
                         : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 border border-transparent'
-                      }`}
+                    }`}
                   >
                     <span>{item.icon}</span>
                     {item.label}
@@ -82,7 +111,14 @@ export const AdminLayout: React.FC = () => {
                 );
               })}
             </nav>
-            <div className="p-4 border-t border-gray-200 dark:border-gray-700">
+            <div className="p-4 border-t border-gray-200 dark:border-gray-700 space-y-2">
+              <button
+                onClick={handleLogout}
+                disabled={loggingOut}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 rounded-xl text-sm font-semibold"
+              >
+                <span>🚪</span> {t('admin.nav.logout', 'Sign Out')}
+              </button>
               <Link to="/" className="flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-100 dark:bg-gray-700 rounded-xl text-sm font-semibold">
                 &larr; {t('admin.nav.backToSite', 'Back to Public Site')}
               </Link>
@@ -105,7 +141,7 @@ export const AdminLayout: React.FC = () => {
             </button>
             <div className="text-sm font-semibold text-gray-500 dark:text-gray-400 hidden sm:block">
               {'Admin > '}
-              {location.pathname.split('/').filter(Boolean).slice(1).map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(' > ')}
+              {location.pathname.split('/').filter(Boolean).slice(1).map((p) => p.charAt(0).toUpperCase() + p.slice(1)).join(' > ')}
             </div>
           </div>
 
@@ -117,19 +153,46 @@ export const AdminLayout: React.FC = () => {
             >
               {i18n.language === 'en' ? 'हिन्दी' : 'English'}
             </button>
-            {/* Profile badge (mock placeholder) */}
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-primary-100 dark:bg-primary-900 text-primary-600 dark:text-primary-400 font-bold flex items-center justify-center text-sm">
-                A
+
+            {/* Profile badge & User identity */}
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-primary-100 dark:bg-primary-900/60 text-primary-600 dark:text-primary-400 font-bold flex items-center justify-center text-sm border border-primary-200 dark:border-primary-800">
+                  {currentUser?.email ? currentUser.email.charAt(0).toUpperCase() : 'A'}
+                </div>
+                <div className="hidden md:flex flex-col text-left">
+                  <span className="text-xs font-bold text-gray-800 dark:text-gray-200 truncate max-w-[140px]">
+                    {currentUser?.email || 'admin@tools4genz.com'}
+                  </span>
+                  <span className="text-[10px] text-gray-400 dark:text-gray-500 uppercase tracking-wider font-semibold">
+                    {currentUser?.role || 'Admin'}
+                  </span>
+                </div>
               </div>
-              <span className="text-sm font-bold hidden md:inline">Operator</span>
+
+              {/* Logout header button */}
+              <button
+                onClick={handleLogout}
+                disabled={loggingOut}
+                title={t('admin.nav.logout', 'Sign Out')}
+                className="p-2 rounded-xl text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-all text-sm font-bold flex items-center gap-1"
+              >
+                <span>🚪</span>
+                <span className="hidden sm:inline text-xs">{t('admin.nav.logout', 'Sign Out')}</span>
+              </button>
             </div>
           </div>
         </header>
 
         {/* Security boundary indicator */}
-        <div className="bg-yellow-50 dark:bg-yellow-950/20 border-b border-yellow-200/50 dark:border-yellow-900/30 px-6 py-2 text-xs font-semibold text-yellow-800 dark:text-yellow-400 flex items-center justify-between">
-          <span>🔒 Platform Admin Boundary — Session Mock Storage Enabled. (Auth & IAM transition in Phase 7)</span>
+        <div className="bg-green-50 dark:bg-green-950/20 border-b border-green-200/50 dark:border-green-900/30 px-6 py-2 text-xs font-semibold text-green-800 dark:text-green-400 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span>🔒</span>
+            <span>{t('admin.dashboard.secureSessionBadge', 'Authenticated Session Active — Cloudflare D1 Backend Synced')}</span>
+          </div>
+          <span className="text-[10px] bg-green-200/60 dark:bg-green-900/50 text-green-900 dark:text-green-300 px-2 py-0.5 rounded font-mono font-bold">
+            PROT-L7
+          </span>
         </div>
 
         {/* Page Content View */}

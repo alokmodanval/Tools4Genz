@@ -1,17 +1,17 @@
 /**
- * D1 database schema definition for the requests table.
- *
- * The authoritative schema is in migrations/0001_create_requests.sql.
- * This file provides the TypeScript row type used by the Worker.
+ * D1 database schema definitions and row types for the Tools4Genz Worker.
  */
 
+// ============================================================
+// Requests Table (Phase 5)
+// ============================================================
 export interface RequestRow {
-  /** Internal numeric primary key (auto-increment) */
+  /** Internal numeric primary key */
   id: number;
   /** Public unique request reference, e.g. TG-REQ-XXXXXXXX */
   request_id: string;
   request_type: string;
-  /** Lifecycle status; Phase 5 only uses 'submitted' */
+  /** Lifecycle status: submitted | reviewing | in_progress | completed | rejected */
   status: string;
 
   // Contact
@@ -47,11 +47,6 @@ export interface RequestRow {
   updated_at: string;
 }
 
-/**
- * Column list for parameterized INSERT — kept in sync with the migration.
- * Using named parameters (:param) prevents SQL injection — no user input
- * is ever concatenated into a query string.
- */
 export const REQUEST_INSERT_COLUMNS = `
   request_id, request_type, status,
   name, email, phone, preferred_contact,
@@ -62,15 +57,82 @@ export const REQUEST_INSERT_COLUMNS = `
   created_at, updated_at
 `;
 
-/**
- * Named-parameter placeholders for the INSERT above.
- */
 export const REQUEST_INSERT_PLACEHOLDERS = `
-  :request_id, :request_type, :status,
-  :name, :email, :phone, :preferred_contact,
-  :project_type, :technology, :project_title, :description,
-  :budget, :deadline, :additional_notes,
-  :course, :branch, :academic_year, :college_name,
-  :company, :website_url, :reference_website, :existing_system,
-  :created_at, :updated_at
+  ?, ?, ?,
+  ?, ?, ?, ?,
+  ?, ?, ?, ?,
+  ?, ?, ?,
+  ?, ?, ?, ?,
+  ?, ?, ?, ?,
+  ?, ?
 `;
+
+// ============================================================
+// Admin Users & Sessions (Phase 7)
+// ============================================================
+export interface AdminUserRow {
+  id: number;
+  email: string;
+  password_hash: string;
+  role: string;
+  status: string;
+  last_login_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AdminSessionRow {
+  id: number;
+  admin_user_id: number;
+  session_token: string;
+  expires_at: string;
+  created_at: string;
+  last_seen_at: string;
+}
+
+// ============================================================
+// Content Tables (Tools, Projects, Services, Categories)
+// ============================================================
+export interface AdminToolRow {
+  id: string;
+  slug: string;
+  name: string;
+  category: string;
+  status: string;
+  featured: number; // 0 or 1
+  data: string; // JSON string of Tool (including integration, SEO, capabilities, etc.)
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AdminProjectRow {
+  id: string;
+  slug: string;
+  title: string;
+  category: string;
+  status: string;
+  featured: number; // 0 or 1
+  data: string; // JSON string of Project
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AdminServiceRow {
+  id: string;
+  title: string;
+  category: string;
+  data: string; // JSON string of Service
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AdminCategoryRow {
+  id: string;
+  type: string; // 'tool' | 'project' | 'service'
+  name: string;
+  icon: string | null;
+  count: number;
+  data: string | null; // Optional JSON metadata
+  created_at: string;
+  updated_at: string;
+}

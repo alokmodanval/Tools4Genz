@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ToolAdminService, CategoryAdminService } from '@/services/adminService';
 import { Tool, ToolStatus, ToolCategory } from '@/types/tool';
@@ -48,13 +48,43 @@ export const ToolManagementPage: React.FC = () => {
     externalApiMethod: 'POST',
   });
 
-  const loadData = () => {
-    setTools(ToolAdminService.getAll());
-    const cats = CategoryAdminService.getAll()
-      .filter(c => c.type === 'tool')
-      .map(c => ({ value: c.id, label: c.name }));
-    setCategories(cats);
+  const loadData = async () => {
+    try {
+      const [fetchedTools, fetchedCats] = await Promise.all([
+        ToolAdminService.fetchAll(),
+        CategoryAdminService.fetchAll(),
+      ]);
+      setTools(fetchedTools);
+      const cats = fetchedCats
+        .filter(c => c.type === 'tool')
+        .map(c => ({ value: c.id, label: c.name }));
+      setCategories(cats);
+    } catch {
+      setTools(ToolAdminService.getAll());
+    }
   };
+
+  useEffect(() => {
+    let isMounted = true;
+    Promise.all([ToolAdminService.fetchAll(), CategoryAdminService.fetchAll()]).then(
+      ([fetchedTools, fetchedCats]) => {
+        if (isMounted) {
+          setTools(fetchedTools);
+          const cats = fetchedCats
+            .filter((c) => c.type === 'tool')
+            .map((c) => ({ value: c.id, label: c.name }));
+          setCategories(cats);
+        }
+      }
+    ).catch(() => {
+      if (isMounted) {
+        setTools(ToolAdminService.getAll());
+      }
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const handleEdit = (tool: Tool) => {
     setEditingTool(tool);
@@ -126,14 +156,14 @@ export const ToolManagementPage: React.FC = () => {
     });
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (confirm(t('admin.confirmDelete', 'Are you sure you want to delete this tool?'))) {
-      ToolAdminService.delete(id);
-      loadData();
+      await ToolAdminService.delete(id);
+      await loadData();
     }
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name || !formData.slug || !formData.description) return;
 
@@ -184,9 +214,9 @@ export const ToolManagementPage: React.FC = () => {
       }
     };
 
-    ToolAdminService.save(savedTool);
+    await ToolAdminService.save(savedTool);
     setModalOpen(false);
-    loadData();
+    await loadData();
   };
 
   const filteredTools = tools.filter(t => {

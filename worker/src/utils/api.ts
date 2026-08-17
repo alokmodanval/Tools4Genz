@@ -15,6 +15,10 @@ export interface ApiErrorShape {
 
 export type ErrorCode =
   | 'VALIDATION_ERROR'
+  | 'INVALID_CREDENTIALS'
+  | 'UNAUTHORIZED'
+  | 'FORBIDDEN'
+  | 'BOOTSTRAP_DISABLED'
   | 'NOT_FOUND'
   | 'METHOD_NOT_ALLOWED'
   | 'PAYLOAD_TOO_LARGE'

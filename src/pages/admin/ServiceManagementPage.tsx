@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ServiceAdminService, CategoryAdminService } from '@/services/adminService';
 import { Service } from '@/types/service';
@@ -29,13 +29,43 @@ export const ServiceManagementPage: React.FC = () => {
     features: '',
   });
 
-  const loadData = () => {
-    setServices(ServiceAdminService.getAll());
-    const cats = CategoryAdminService.getAll()
-      .filter(c => c.type === 'service')
-      .map(c => ({ value: c.id, label: c.name }));
-    setCategories(cats);
+  const loadData = async () => {
+    try {
+      const [fetchedServices, fetchedCats] = await Promise.all([
+        ServiceAdminService.fetchAll(),
+        CategoryAdminService.fetchAll(),
+      ]);
+      setServices(fetchedServices);
+      const cats = fetchedCats
+        .filter(c => c.type === 'service')
+        .map(c => ({ value: c.id, label: c.name }));
+      setCategories(cats);
+    } catch {
+      setServices(ServiceAdminService.getAll());
+    }
   };
+
+  useEffect(() => {
+    let isMounted = true;
+    Promise.all([ServiceAdminService.fetchAll(), CategoryAdminService.fetchAll()]).then(
+      ([fetchedServices, fetchedCats]) => {
+        if (isMounted) {
+          setServices(fetchedServices);
+          const cats = fetchedCats
+            .filter((c) => c.type === 'service')
+            .map((c) => ({ value: c.id, label: c.name }));
+          setCategories(cats);
+        }
+      }
+    ).catch(() => {
+      if (isMounted) {
+        setServices(ServiceAdminService.getAll());
+      }
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const handleEdit = (svc: Service) => {
     setEditingService(svc);
@@ -70,14 +100,14 @@ export const ServiceManagementPage: React.FC = () => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (confirm(t('admin.confirmDeleteService', 'Are you sure you want to delete this service?'))) {
-      ServiceAdminService.delete(id);
-      loadData();
+      await ServiceAdminService.delete(id);
+      await loadData();
     }
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.title || !formData.description) return;
 
@@ -91,9 +121,9 @@ export const ServiceManagementPage: React.FC = () => {
       features: formData.features.split(',').map(s => s.trim()).filter(Boolean),
     };
 
-    ServiceAdminService.save(savedSvc);
+    await ServiceAdminService.save(savedSvc);
     setModalOpen(false);
-    loadData();
+    await loadData();
   };
 
   const filteredServices = services.filter(s => {

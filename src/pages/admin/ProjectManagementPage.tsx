@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ProjectAdminService, CategoryAdminService } from '@/services/adminService';
 import { Project, ProjectStatus, ProjectLevel, ProjectCategory } from '@/types/project';
@@ -46,13 +46,43 @@ export const ProjectManagementPage: React.FC = () => {
     seoKeywords: '',
   });
 
-  const loadData = () => {
-    setProjects(ProjectAdminService.getAll());
-    const cats = CategoryAdminService.getAll()
-      .filter(c => c.type === 'project')
-      .map(c => ({ value: c.id, label: c.name }));
-    setCategories(cats);
+  const loadData = async () => {
+    try {
+      const [fetchedProjects, fetchedCats] = await Promise.all([
+        ProjectAdminService.fetchAll(),
+        CategoryAdminService.fetchAll(),
+      ]);
+      setProjects(fetchedProjects);
+      const cats = fetchedCats
+        .filter(c => c.type === 'project')
+        .map(c => ({ value: c.id, label: c.name }));
+      setCategories(cats);
+    } catch {
+      setProjects(ProjectAdminService.getAll());
+    }
   };
+
+  useEffect(() => {
+    let isMounted = true;
+    Promise.all([ProjectAdminService.fetchAll(), CategoryAdminService.fetchAll()]).then(
+      ([fetchedProjects, fetchedCats]) => {
+        if (isMounted) {
+          setProjects(fetchedProjects);
+          const cats = fetchedCats
+            .filter((c) => c.type === 'project')
+            .map((c) => ({ value: c.id, label: c.name }));
+          setCategories(cats);
+        }
+      }
+    ).catch(() => {
+      if (isMounted) {
+        setProjects(ProjectAdminService.getAll());
+      }
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const handleEdit = (project: Project) => {
     setEditingProject(project);
@@ -121,14 +151,14 @@ export const ProjectManagementPage: React.FC = () => {
     });
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (confirm(t('admin.confirmDeleteProject', 'Are you sure you want to delete this project?'))) {
-      ProjectAdminService.delete(id);
-      loadData();
+      await ProjectAdminService.delete(id);
+      await loadData();
     }
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.title || !formData.slug || !formData.description) return;
 
@@ -158,9 +188,9 @@ export const ProjectManagementPage: React.FC = () => {
       }
     };
 
-    ProjectAdminService.save(savedProject);
+    await ProjectAdminService.save(savedProject);
     setModalOpen(false);
-    loadData();
+    await loadData();
   };
 
   const filteredProjects = projects.filter(p => {

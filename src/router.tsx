@@ -2,6 +2,7 @@ import { createBrowserRouter } from 'react-router-dom';
 import { lazy, Suspense } from 'react';
 import Layout from '@/components/layout/Layout';
 import AdminLayout from '@/components/layout/AdminLayout';
+import AdminProtectedRoute from '@/components/auth/AdminProtectedRoute';
 
 // Lazy load public pages
 const HomePage = lazy(() => import('@/pages/HomePage'));
@@ -16,6 +17,7 @@ const AboutPage = lazy(() => import('@/pages/AboutPage'));
 const NotFoundPage = lazy(() => import('@/pages/NotFoundPage'));
 
 // Lazy load admin pages
+const LoginPage = lazy(() => import('@/pages/admin/LoginPage'));
 const DashboardPage = lazy(() => import('@/pages/admin/DashboardPage'));
 const ToolManagementPage = lazy(() => import('@/pages/admin/ToolManagementPage'));
 const ProjectManagementPage = lazy(() => import('@/pages/admin/ProjectManagementPage'));
@@ -54,8 +56,16 @@ export const router = createBrowserRouter([
     ],
   },
   {
+    path: '/admin/login',
+    element: <SuspenseWrapper><LoginPage /></SuspenseWrapper>,
+  },
+  {
     path: '/admin',
-    element: <AdminLayout />,
+    element: (
+      <AdminProtectedRoute>
+        <AdminLayout />
+      </AdminProtectedRoute>
+    ),
     children: [
       { index: true, element: <SuspenseWrapper><DashboardPage /></SuspenseWrapper> },
       { path: 'dashboard', element: <SuspenseWrapper><DashboardPage /></SuspenseWrapper> },
