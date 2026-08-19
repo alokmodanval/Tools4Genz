@@ -38,6 +38,8 @@ export interface CreateOrderPayload {
 
 export interface CreateOrderResponse {
   orderId: string;
+  /** Returned once at creation. Never include this value in URLs or UI text. */
+  accessToken: string;
   providerOrderId: string;
   amount: number;
   currency: string;
@@ -51,6 +53,13 @@ export interface CreateOrderResponse {
     name: string;
     email: string;
   };
+}
+
+export interface ProjectPurchaseAvailability {
+  projectId: string;
+  purchasable: boolean;
+  status: 'available' | 'unavailable';
+  message: string;
 }
 
 export interface VerifyPaymentPayload {
@@ -78,9 +87,31 @@ export interface PublicOrderSummary {
   currency: string;
   status: OrderStatus;
   paymentProvider: string;
-  providerPaymentId?: string | null;
   paidAt?: string | null;
   createdAt: string;
+  /** Phase 9: Digital delivery status (pending | ready | failed | null) */
+  deliveryStatus?: string | null;
+}
+
+/**
+ * Phase 9 — Digital Delivery status.
+ */
+export type DeliveryStatus = 'pending' | 'ready' | 'failed';
+
+/**
+ * Dynamic UPI QR payment data returned by
+ * POST /api/orders/:orderId/payment/qr
+ *
+ * The amount is server-authoritative and locked to the order amount.
+ * The frontend MUST NOT allow the user to edit it.
+ */
+export interface OrderQrResponse {
+  orderId: string;
+  qrId: string;
+  imageUrl: string;
+  amount: number; // in INR (locked to server order amount)
+  currency: string;
+  expiresAt: string;
 }
 
 /**

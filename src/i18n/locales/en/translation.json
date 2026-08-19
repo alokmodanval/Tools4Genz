@@ -146,7 +146,33 @@
     "get_started": "Get Started",
     "learn_more": "Learn More",
     "cta_title": "Need a custom service?",
-    "cta_desc": "Contact us today for a tailored solution."
+    "cta_desc": "Tell us what you are trying to build. We review the request before discussing scope, timeline, or cost.",
+    "eyebrow": "Development & digital solutions",
+    "hero_title": "Services for Students, Creators & Businesses",
+    "hero_subtitle": "From responsive websites and web applications to custom software and student project guidance, request a solution shaped around your real needs.",
+    "requestService": "Request a Service",
+    "viewProjects": "View Projects",
+    "contactUs": "Contact Us",
+    "solutionsTitle": "Choose the support you need",
+    "solutionsDesc": "Each request starts with a review. Pricing and timelines are confirmed only after the scope is understood.",
+    "whyTitle": "Why choose Tools4Genz?",
+    "whyDesc": "A practical, transparent approach for projects of different sizes and stages.",
+    "processTitle": "How it works",
+    "card": { "benefits": "What you get", "requestNow": "Request this service", "idealFor": "Best for" },
+    "why": {
+      "affordable": { "title": "Affordable solutions", "desc": "Clear scope discussions help match a practical solution to the available budget." },
+      "student": { "title": "Student-friendly", "desc": "Guidance, documentation support, and approachable technical communication." },
+      "custom": { "title": "Custom development", "desc": "Solutions shaped around the actual workflow instead of a one-size-fits-all template." },
+      "modern": { "title": "Modern stack", "desc": "Current web and cloud technologies selected according to project needs." },
+      "secure": { "title": "Secure delivery", "desc": "Private, order-authorized delivery is available for eligible digital products." },
+      "support": { "title": "Practical support", "desc": "A clear request and review process before scope or delivery commitments are made." }
+    },
+    "steps": {
+      "tell": { "title": "Tell us what you need", "desc": "Share your goal, constraints, and preferred timeline." },
+      "scope": { "title": "Discuss the scope", "desc": "We review requirements and clarify a realistic approach." },
+      "build": { "title": "We build", "desc": "Development follows the mutually agreed scope and milestones." },
+      "delivery": { "title": "Delivery & support", "desc": "Receive the agreed deliverables and relevant handover support." }
+    }
   },
   "students": {
     "title": "Student Solutions & Custom Projects",
@@ -273,10 +299,10 @@
     },
     "success": {
       "badge": "Request Processed",
-      "title": "Your Request Has Been Generated!",
+      "title": "Request submitted successfully!",
       "referenceId": "Reference ID",
       "created": "Created: {{date}}",
-      "note": "Your request reference has been created. Our team will review your details and contact you shortly. No data has been stored on a live server yet."
+      "note": "Your request was stored securely. Keep the reference ID for support; our team will review the details and contact you using your preferred method."
     },
     "error": {
       "submitFailed": "We couldn't submit your request. Please try again."
@@ -285,32 +311,32 @@
   },
   "seo": {
     "home": {
-      "title": "Home - Tools4Genz",
-      "description": "Smart tools, ready-made projects, and custom digital solutions for students and businesses."
+      "title": "Smart Tools, Projects & Digital Solutions | Tools4Genz",
+      "description": "Explore free online tools, practical software projects, and custom development services for students, creators, and businesses."
     },
     "tools": {
-      "title": "Explore All Tools - Tools4Genz",
-      "description": "Browse our collection of fast, reliable AI, developer, writing, and productivity tools."
+      "title": "Free Online Tools for Work and Study | Tools4Genz",
+      "description": "Browse useful online text, developer, calculator, converter, writing, and productivity tools from Tools4Genz."
     },
     "projects": {
-      "title": "Projects - Tools4Genz",
-      "description": "Browse ready-made projects for students and developers."
+      "title": "Software Project Source Code Catalog | Tools4Genz",
+      "description": "Explore practical web, AI, Java, Python, React, and software project source-code examples with clear technology and feature details."
     },
     "services": {
-      "title": "Services - Tools4Genz",
-      "description": "Professional software services for your business."
+      "title": "Web, App & Custom Software Services | Tools4Genz",
+      "description": "Request responsive websites, web applications, custom software, automation, and student project guidance based on your requirements."
     },
     "students": {
-      "title": "For Students - Tools4Genz",
-      "description": "Project assistance for students, including final year projects, mini projects, and documentation."
+      "title": "Software Project Support for Students | Tools4Genz",
+      "description": "Explore practical tools, software project guidance, documentation support, and development services for students."
     },
     "clients": {
-      "title": "For Businesses - Tools4Genz",
-      "description": "Custom software solutions for businesses, including websites, web apps, and AI solutions."
+      "title": "Custom Software Services for Businesses | Tools4Genz",
+      "description": "Request websites, web applications, workflow tools, integrations, and custom software shaped around real business requirements."
     },
     "about": {
-      "title": "About Us - Tools4Genz",
-      "description": "Learn more about Tools4Genz."
+      "title": "About Tools4Genz",
+      "description": "Learn how Tools4Genz supports students, creators, and businesses with practical online tools, software projects, and development services."
     },
     "not_found": {
       "title": "404 - Page Not Found",
@@ -529,7 +555,7 @@
     "name_placeholder": "e.g. Rahul Sharma",
     "email_label": "Email Address",
     "email_placeholder": "e.g. rahul@example.com",
-    "email_help": "Project source code and documentation will be delivered to this email address.",
+    "email_help": "Use this email for purchase support and recovery. Your secure download will appear in My Purchases after payment.",
     "phone_label": "Phone Number (Optional)",
     "phone_placeholder": "e.g. +91 9876543210",
     "test_mode_notice": "Razorpay Test Mode: This is a safe testing environment. No real money will be charged.",

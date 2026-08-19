@@ -33,7 +33,6 @@ const DEV_ORIGINS = new Set([
 const PROD_ORIGINS = new Set([
   'https://tools4genz.com',
   'https://www.tools4genz.com',
-  'https://tools4genz-api.alokmodanwal940.workers.dev',
 ]);
 
 const ALLOWED_METHODS = 'GET,POST,PUT,PATCH,DELETE,OPTIONS';
@@ -80,6 +79,7 @@ export function buildCorsHeaders(
     'Access-Control-Allow-Origin': origin,
     'Access-Control-Allow-Methods': ALLOWED_METHODS,
     'Access-Control-Allow-Headers': ALLOWED_HEADERS,
+    'Access-Control-Expose-Headers': 'Content-Disposition,Content-Length',
     'Access-Control-Allow-Credentials': 'true',
     'Access-Control-Max-Age': '86400',
     Vary: 'Origin',

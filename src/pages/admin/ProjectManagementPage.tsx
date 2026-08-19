@@ -1,6 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ProjectAdminService, CategoryAdminService } from '@/services/adminService';
+import {
+  ProjectAdminService,
+  CategoryAdminService,
+  ProjectReleaseAdminService,
+  ProjectReleaseSummary,
+} from '@/services/adminService';
 import { Project, ProjectStatus, ProjectLevel, ProjectCategory } from '@/types/project';
 import { AdminField, SeoFields } from '@/components/admin/FormPrimitives';
 import { generateSlug } from '@/utils/slug';
@@ -20,6 +25,12 @@ export const ProjectManagementPage: React.FC = () => {
   // Modal State
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [releaseProject, setReleaseProject] = useState<Project | null>(null);
+  const [releases, setReleases] = useState<ProjectReleaseSummary[]>([]);
+  const [releaseVersion, setReleaseVersion] = useState('v1');
+  const [releaseFile, setReleaseFile] = useState<File | null>(null);
+  const [releaseBusy, setReleaseBusy] = useState(false);
+  const [releaseError, setReleaseError] = useState('');
 
   // Form Fields State
   const [formData, setFormData] = useState({
@@ -193,6 +204,55 @@ export const ProjectManagementPage: React.FC = () => {
     await loadData();
   };
 
+  const openReleases = async (project: Project) => {
+    setReleaseProject(project);
+    setReleaseError('');
+    try {
+      setReleases(await ProjectReleaseAdminService.list(project.id));
+    } catch (err) {
+      setReleases([]);
+      setReleaseError(err instanceof Error ? err.message : 'Unable to load project releases.');
+    }
+  };
+
+  const refreshReleases = async () => {
+    if (releaseProject) setReleases(await ProjectReleaseAdminService.list(releaseProject.id));
+  };
+
+  const handleReleaseUpload = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!releaseProject || !releaseFile) return;
+    setReleaseBusy(true);
+    setReleaseError('');
+    try {
+      await ProjectReleaseAdminService.upload(releaseProject.id, releaseVersion.trim(), releaseFile);
+      setReleaseFile(null);
+      await refreshReleases();
+    } catch (err) {
+      setReleaseError(err instanceof Error ? err.message : 'Release upload failed.');
+    } finally {
+      setReleaseBusy(false);
+    }
+  };
+
+  const handleReleaseAction = async (release: ProjectReleaseSummary, action: 'publish' | 'archive') => {
+    if (!releaseProject) return;
+    setReleaseBusy(true);
+    setReleaseError('');
+    try {
+      if (action === 'publish') {
+        await ProjectReleaseAdminService.publish(releaseProject.id, release.id);
+      } else {
+        await ProjectReleaseAdminService.archive(releaseProject.id, release.id);
+      }
+      await refreshReleases();
+    } catch (err) {
+      setReleaseError(err instanceof Error ? err.message : `Unable to ${action} release.`);
+    } finally {
+      setReleaseBusy(false);
+    }
+  };
+
   const filteredProjects = projects.filter(p => {
     const matchesSearch = p.title.toLowerCase().includes(searchQuery.toLowerCase()) || p.description.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCat = selectedCat === 'all' || p.category === selectedCat;
@@ -288,6 +348,9 @@ export const ProjectManagementPage: React.FC = () => {
                     {p.featured ? <span className="text-yellow-500">⭐ Yes</span> : <span className="text-gray-400">-</span>}
                   </td>
                   <td className="px-6 py-4 text-right space-x-2">
+                    <button onClick={() => openReleases(p)} className="text-sm px-3 py-1.5 bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 rounded-lg">
+                      Project File
+                    </button>
                     <button onClick={() => handleEdit(p)} className="text-sm px-3 py-1.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 rounded-lg text-gray-700 dark:text-gray-200">
                       Edit
                     </button>
@@ -402,6 +465,57 @@ export const ProjectManagementPage: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {releaseProject && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm">
+          <div className="bg-white dark:bg-gray-800 max-w-2xl w-full rounded-2xl border border-gray-200 dark:border-gray-700 shadow-xl max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+              <div>
+                <h2 className="text-lg font-bold text-gray-900 dark:text-white">Project File / Release</h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400">{releaseProject.title}</p>
+              </div>
+              <button onClick={() => setReleaseProject(null)} className="text-xl p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">✕</button>
+            </div>
+
+            <form onSubmit={handleReleaseUpload} className="p-6 border-b border-gray-200 dark:border-gray-700 space-y-4">
+              <p className="text-sm text-gray-600 dark:text-gray-300">
+                Upload one private ZIP per version. Publishing makes it the default release for new paid orders.
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <input value={releaseVersion} onChange={(e) => setReleaseVersion(e.target.value)} required placeholder="v1" className="px-3 py-2 border rounded-lg dark:bg-gray-900 dark:border-gray-700" />
+                <input type="file" accept=".zip,application/zip" required onChange={(e) => setReleaseFile(e.target.files?.[0] || null)} className="sm:col-span-2 px-3 py-2 border rounded-lg dark:bg-gray-900 dark:border-gray-700" />
+              </div>
+              <button disabled={releaseBusy || !releaseFile} className="px-4 py-2 bg-primary-600 disabled:opacity-50 text-white font-semibold rounded-xl text-sm">
+                {releaseBusy ? 'Working…' : 'Upload ZIP'}
+              </button>
+              {releaseError && <p className="text-sm text-red-600 dark:text-red-400">{releaseError}</p>}
+            </form>
+
+            <div className="p-6 space-y-3">
+              {releases.length === 0 && <p className="text-sm text-gray-500">No releases uploaded yet.</p>}
+              {releases.map((release) => (
+                <div key={release.id} className="border border-gray-200 dark:border-gray-700 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <div className="text-sm">
+                    <div className="font-bold text-gray-900 dark:text-white">{release.version} · {release.filename}</div>
+                    <div className="text-gray-500 dark:text-gray-400">
+                      {(release.fileSize / 1024).toFixed(1)} KB · SHA-256 {release.sha256.slice(0, 12)}…
+                    </div>
+                    <span className="inline-block mt-1 px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-xs font-bold uppercase">{release.status}</span>
+                  </div>
+                  <div className="flex gap-2">
+                    {release.status === 'ready' && (
+                      <button disabled={releaseBusy} onClick={() => handleReleaseAction(release, 'publish')} className="px-3 py-1.5 bg-green-600 text-white rounded-lg text-sm">Publish</button>
+                    )}
+                    {release.status !== 'archived' && (
+                      <button disabled={releaseBusy} onClick={() => handleReleaseAction(release, 'archive')} className="px-3 py-1.5 bg-gray-100 dark:bg-gray-700 rounded-lg text-sm">Archive</button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       )}

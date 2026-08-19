@@ -84,10 +84,10 @@ function createMockD1() {
 
         // SELECT session JOIN user
         if (s.includes('from admin_sessions s') && s.includes('join admin_users u')) {
-          const token = boundValues[0];
+          const tokenHash = boundValues[0];
           const now = boundValues[1];
           const session = tables.admin_sessions.find(
-            (sess) => sess.session_token === token && sess.expires_at > now
+            (sess) => sess.session_token_hash === tokenHash && sess.expires_at > now
           );
           if (session) {
             const user = tables.admin_users.find((u) => u.id === session.admin_user_id && u.status === 'active');
@@ -109,6 +109,10 @@ function createMockD1() {
 
         // SELECT all tools
         if (s.includes('from admin_tools')) {
+          if (s.includes('where slug = ?') && s.includes('id != ?')) {
+            const t = tables.admin_tools.find((x) => x.slug === boundValues[0] && x.id !== boundValues[1]);
+            return { results: t ? [{ id: t.id }] : [] };
+          }
           if (s.includes('where id = ?')) {
             const t = tables.admin_tools.find((x) => x.id === boundValues[0]);
             return { results: t ? [t] : [] };
@@ -186,7 +190,8 @@ function createMockD1() {
           const row = {
             id: nextId++,
             admin_user_id: boundValues[0],
-            session_token: boundValues[1],
+            session_token: 'hashed',
+            session_token_hash: boundValues[1],
             expires_at: boundValues[2],
             created_at: boundValues[3],
             last_seen_at: boundValues[4],
@@ -203,9 +208,9 @@ function createMockD1() {
         }
 
         // DELETE session
-        if (s.includes('delete from admin_sessions where session_token = ?')) {
+        if (s.includes('delete from admin_sessions where session_token_hash = ?')) {
           const initialLen = tables.admin_sessions.length;
-          tables.admin_sessions = tables.admin_sessions.filter((x) => x.session_token !== boundValues[0]);
+          tables.admin_sessions = tables.admin_sessions.filter((x) => x.session_token_hash !== boundValues[0]);
           return { meta: { changes: initialLen - tables.admin_sessions.length, last_row_id: 0 } };
         }
 
@@ -512,8 +517,9 @@ async function runTests() {
     featured: true,
     integration: 'external-url',
     integrationConfig: {
-      externalUrl: 'https://assistant.example.com',
-      allowEmbed: false,
+      type: 'external-url',
+      url: 'https://assistant.example.com',
+      openMode: 'new-tab',
     },
     capabilities: {
       offlineCapable: false,
@@ -546,7 +552,7 @@ async function runTests() {
   const toolsJson = await getToolsResp.json();
   const savedTool = toolsJson.data.find((t) => t.id === 'test-external-tool');
   assert(savedTool && savedTool.integration === 'external-url', 'Phase 6.5 integration type is preserved');
-  assert(savedTool.integrationConfig.externalUrl === 'https://assistant.example.com', 'Phase 6.5 integrationConfig is preserved');
+  assert(savedTool.integrationConfig.url === 'https://assistant.example.com', 'Phase 6.5 integrationConfig is preserved');
 
   // Update tool
   savedTool.name = 'External AI Assistant (Updated)';
@@ -568,7 +574,7 @@ async function runTests() {
     }),
     env
   );
-  assert(deleteToolResp.status === 200, 'DELETE /api/admin/tools/:id deletes tool');
+  assert(deleteToolResp.status === 200, 'DELETE /api/admin/tools/:id safely archives tool');
 
   // 6. Admin Projects CRUD
   console.log('\n--- 6. Admin Projects CRUD Tests ---');

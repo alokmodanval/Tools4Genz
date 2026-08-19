@@ -26,11 +26,14 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service }) => {
         <p className="text-gray-600 dark:text-gray-300">
           {service.description}
         </p>
+        <p className="mt-4 text-xs font-bold uppercase tracking-wider text-primary-600 dark:text-primary-400">
+          {t('services.card.idealFor', 'Best for')}: <span className="normal-case tracking-normal text-gray-600 dark:text-gray-300">{service.category}</span>
+        </p>
       </div>
 
       <div className="flex-grow">
         <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100 uppercase tracking-wider mb-4">
-          {t('services.card.benefits')}
+          {t('services.card.benefits', 'What you get')}
         </h4>
         <ul className="space-y-3 mb-8">
           {service.benefits.map((benefit, index) => (
@@ -48,7 +51,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service }) => {
 
       <div className="mt-auto">
         <Button variant="primary" className="w-full" href={`/services/request?type=${service.id}`}>
-          {t('services.card.requestNow')}
+          {t('services.card.requestNow', 'Request this service')}
         </Button>
       </div>
     </Card>

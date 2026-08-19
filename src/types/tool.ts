@@ -8,7 +8,8 @@ export type ToolCategory =
   | 'writing-tools'
   | 'utility-tools';
 
-export type ToolStatus = 'active' | 'coming-soon' | 'beta' | 'disabled';
+export type ToolStatus = 'active' | 'coming-soon' | 'beta' | 'draft' | 'disabled';
+export type ToolAccessTier = 'free' | 'premium' | 'coming-soon';
 
 export type ToolType =
   | 'calculator'
@@ -66,7 +67,11 @@ export interface ToolDefinition {
   icon: string;
   tags: string[];
   featured: boolean;
+  sortOrder?: number;
+  searchKeywords?: string[];
   status: ToolStatus;
+  /** Phase 15 access metadata. Premium is a future tier and grants no entitlement yet. */
+  accessTier?: ToolAccessTier;
   toolType?: ToolType;
   executionMode?: ExecutionMode;
   capabilities?: ToolCapability[];

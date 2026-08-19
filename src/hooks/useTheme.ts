@@ -1,33 +1,27 @@
-import { useState, useEffect } from 'react';
+import { useSyncExternalStore } from 'react';
 
-type Theme = 'light' | 'dark';
+export type Theme = 'light' | 'dark';
+const listeners = new Set<() => void>();
+const systemDark = () => typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches;
+let currentTheme: Theme = typeof window !== 'undefined' && localStorage.getItem('theme') === 'dark' ? 'dark' : systemDark() ? 'dark' : 'light';
+
+function applyTheme(theme: Theme) {
+  currentTheme = theme;
+  document.documentElement.classList.toggle('dark', theme === 'dark');
+  localStorage.setItem('theme', theme);
+  listeners.forEach((listener) => listener());
+}
+if (typeof document !== 'undefined') applyTheme(currentTheme);
 
 export function useTheme() {
-  const [theme, setThemeState] = useState<Theme>(() => {
-    const savedTheme = localStorage.getItem('theme') as Theme | null;
-    if (savedTheme) {
-      return savedTheme;
-    }
-    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-  });
-
-  useEffect(() => {
-    const root = window.document.documentElement;
-    if (theme === 'dark') {
-      root.classList.add('dark');
-    } else {
-      root.classList.remove('dark');
-    }
-    localStorage.setItem('theme', theme);
-  }, [theme]);
-
-  const setTheme = (newTheme: Theme) => {
-    setThemeState(newTheme);
+  const theme = useSyncExternalStore(
+    (listener) => { listeners.add(listener); return () => listeners.delete(listener); },
+    () => currentTheme,
+    () => 'light' as Theme
+  );
+  return {
+    theme,
+    setTheme: applyTheme,
+    toggleTheme: () => applyTheme(currentTheme === 'light' ? 'dark' : 'light'),
   };
-
-  const toggleTheme = () => {
-    setThemeState((prev) => (prev === 'light' ? 'dark' : 'light'));
-  };
-
-  return { theme, setTheme, toggleTheme };
 }

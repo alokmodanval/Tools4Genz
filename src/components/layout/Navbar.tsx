@@ -1,14 +1,24 @@
 import React, { useState } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import MobileMenu from './MobileMenu';
 import Container from './Container';
 import { useTheme } from '@/hooks/useTheme';
 import { useLanguage } from '@/hooks/useLanguage';
+import { getSiteSearchDestination } from '@/utils/siteSearch';
+import { useCustomerAuth } from '@/contexts/CustomerAuthContext';
 
 const Navbar: React.FC = () => {
   const { t } = useTranslation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const navigate = useNavigate();
+  const { enabled: customerLoginEnabled, user, logout } = useCustomerAuth();
+  const submitSearch = (event: React.FormEvent) => {
+    event.preventDefault();
+    const destination = getSiteSearchDestination(searchQuery);
+    if (destination) navigate(destination);
+  };
   
   const { theme, toggleTheme } = useTheme();
   const isDarkMode = theme === 'dark';
@@ -25,6 +35,7 @@ const Navbar: React.FC = () => {
     { to: '/services', label: 'nav.services', default: 'Services' },
     { to: '/students', label: 'nav.students', default: 'Students' },
     { to: '/clients', label: 'nav.clients', default: 'Clients' },
+    { to: '/my-purchases', label: 'nav.myPurchases', default: 'My Purchases' },
   ];
 
   return (
@@ -59,7 +70,7 @@ const Navbar: React.FC = () => {
             </div>
 
             <div className="flex items-center gap-4">
-              <div className="hidden md:flex relative group">
+              <form onSubmit={submitSearch} role="search" className="hidden md:flex relative group">
                 <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-surface-400 dark:text-surface-500">
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -67,12 +78,20 @@ const Navbar: React.FC = () => {
                 </div>
                 <input 
                   type="text" 
+                  value={searchQuery}
+                  onChange={(event) => setSearchQuery(event.target.value)}
+                  aria-label="Search tools and projects"
                   placeholder={t('nav.search', 'Search...')}
                   className="w-48 lg:w-64 pl-10 pr-4 py-1.5 text-sm bg-surface-100 border-transparent rounded-full focus:bg-white focus:border-primary-500 focus:ring-2 focus:ring-primary-500 dark:bg-surface-800 dark:focus:bg-surface-900 dark:text-surface-200 transition-all outline-none"
                 />
-              </div>
+              </form>
 
               <div className="flex items-center gap-2">
+                {customerLoginEnabled && (user ? (
+                  <button onClick={() => void logout()} title={`Signed in as ${user.email}`} className="hidden xl:inline-flex rounded-full border border-surface-200 px-3 py-1.5 text-xs font-semibold text-surface-700 hover:bg-surface-100 dark:border-surface-700 dark:text-surface-200 dark:hover:bg-surface-800">Logout</button>
+                ) : (
+                  <NavLink to="/login" className="hidden xl:inline-flex rounded-full bg-primary-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-primary-700">Login</NavLink>
+                ))}
                 <button 
                   onClick={toggleLanguage}
                   className="p-2 rounded-full text-surface-500 hover:bg-surface-100 dark:text-surface-400 dark:hover:bg-surface-800 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500"

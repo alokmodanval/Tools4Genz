@@ -10,8 +10,10 @@ import {
   projectCategories as initialProjectCategories,
 } from '@/data/categories';
 
+import { API_BASE_URL } from '@/config/api';
+
 // Base API endpoint URL
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/+$/, '') + '/api';
+const API_BASE = `${API_BASE_URL}/api`;
 
 export interface AdminRequest extends BaseRequestData {
   requestId: string;
@@ -45,19 +47,35 @@ export interface AdminUser {
   status: string;
 }
 
+export interface ProjectReleaseSummary {
+  id: number;
+  projectId: string;
+  version: string;
+  filename: string;
+  contentType: string;
+  fileSize: number;
+  sha256: string;
+  status: 'draft' | 'ready' | 'published' | 'archived';
+  createdAt: string;
+  updatedAt: string;
+  publishedAt: string | null;
+}
+
 /**
  * Generic authenticated API fetch wrapper.
  * Always sends HttpOnly session cookies via credentials: "include".
  */
 export async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
   const url = `${API_BASE}${path.startsWith('/') ? path : `/${path}`}`;
+  const headers = new Headers(options.headers);
+  const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
+  if (!isFormData && !headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json');
+  }
   const response = await fetch(url, {
     credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
     ...options,
+    headers,
   });
 
   if (response.status === 401) {
@@ -154,34 +172,29 @@ export const ToolAdminService = {
   },
 
   async save(tool: Tool): Promise<void> {
-    const idx = toolCache.findIndex((t) => t.id === tool.id);
-    if (idx >= 0) {
-      toolCache[idx] = tool;
-    } else {
-      toolCache.unshift(tool);
-    }
     await apiFetch('/admin/tools', {
       method: 'POST',
       body: JSON.stringify(tool),
     });
+    const idx = toolCache.findIndex((t) => t.id === tool.id);
+    if (idx >= 0) toolCache[idx] = tool;
+    else toolCache.unshift(tool);
   },
 
   async update(tool: Tool): Promise<void> {
-    const idx = toolCache.findIndex((t) => t.id === tool.id);
-    if (idx >= 0) {
-      toolCache[idx] = tool;
-    }
     await apiFetch(`/admin/tools/${tool.id}`, {
       method: 'PUT',
       body: JSON.stringify(tool),
     });
+    const idx = toolCache.findIndex((t) => t.id === tool.id);
+    if (idx >= 0) toolCache[idx] = tool;
   },
 
   async delete(id: string): Promise<void> {
-    toolCache = toolCache.filter((t) => t.id !== id);
     await apiFetch(`/admin/tools/${id}`, {
       method: 'DELETE',
     });
+    toolCache = toolCache.map((tool) => tool.id === id ? { ...tool, status: 'disabled', featured: false } : tool);
   },
 };
 
@@ -244,6 +257,36 @@ export const ProjectAdminService = {
     await apiFetch(`/admin/projects/${id}`, {
       method: 'DELETE',
     });
+  },
+};
+
+export const ProjectReleaseAdminService = {
+  async list(projectId: string): Promise<ProjectReleaseSummary[]> {
+    return apiFetch<ProjectReleaseSummary[]>(`/admin/projects/${encodeURIComponent(projectId)}/releases`);
+  },
+
+  async upload(projectId: string, version: string, file: File): Promise<ProjectReleaseSummary> {
+    const form = new FormData();
+    form.set('version', version);
+    form.set('file', file);
+    return apiFetch<ProjectReleaseSummary>(
+      `/admin/projects/${encodeURIComponent(projectId)}/releases`,
+      { method: 'POST', body: form }
+    );
+  },
+
+  async publish(projectId: string, releaseId: number): Promise<ProjectReleaseSummary> {
+    return apiFetch<ProjectReleaseSummary>(
+      `/admin/projects/${encodeURIComponent(projectId)}/releases/${releaseId}/publish`,
+      { method: 'POST' }
+    );
+  },
+
+  async archive(projectId: string, releaseId: number): Promise<void> {
+    await apiFetch(
+      `/admin/projects/${encodeURIComponent(projectId)}/releases/${releaseId}/archive`,
+      { method: 'POST' }
+    );
   },
 };
 

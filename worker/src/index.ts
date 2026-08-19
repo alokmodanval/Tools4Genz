@@ -10,6 +10,7 @@ import {
   handleGetAdminCategories,
   handleGetAdminMetrics,
   handleGetAdminProjects,
+  handleGetProjectReleases,
   handleGetAdminRequestById,
   handleGetAdminRequests,
   handleGetAdminServices,
@@ -23,21 +24,52 @@ import {
   handleUpdateAdminRequestStatus,
   handleUpdateAdminService,
   handleUpdateAdminTool,
+  handleUploadProjectRelease,
+  handlePublishProjectRelease,
+  handleArchiveProjectRelease,
 } from './routes/admin';
 import {
   handleCreateOrder,
+  handleCreateOrderQr,
+  handleDownloadDelivery,
+  handleGetProjectAvailability,
   handleGetOrderById,
   handleVerifyPayment,
 } from './routes/orders';
+import { handleRazorpayWebhook } from './routes/webhooks';
+import { handleRedeemPurchaseRecovery, handleRequestPurchaseRecovery } from './routes/purchaseRecovery';
+import { EmailBindings } from './services/email/emailProvider';
+import { KVNamespace, R2Bucket } from './services/assetStorage';
 import { error } from './utils/api';
 import { requireAuth } from './utils/auth';
 import { buildCorsHeaders } from './utils/cors';
+import {
+  handleAdminCustomerStatus, handleAdminCustomerUsers, handleAdminPlatformMetrics,
+  handleAnalytics, handleCustomerAuthStatus, handleCustomerLoginStart, handleCustomerLoginVerify,
+  handleCustomerLogout, handleCustomerOrders, handleGetPublicSettings, handleGetPublicTools,
+  handleUpdateSettings,
+} from './routes/platform';
+import { handleSitemap } from './routes/seo';
+import {
+  handleAdminAffiliateArchive, handleAdminAffiliateList, handleAdminAffiliateSave,
+  handleAdsTxt, handleAffiliateClick, handlePublicAffiliateOffers,
+} from './routes/monetization';
+import { enforceRateLimit, ratePolicy } from './utils/rateLimit';
 
-export interface Env {
+export interface Env extends EmailBindings {
   DB?: D1Database;
   ALLOWED_ORIGINS?: string;
   RAZORPAY_KEY_ID?: string;
   RAZORPAY_KEY_SECRET?: string;
+  RAZORPAY_WEBHOOK_SECRET?: string;
+  /** Private R2 bucket binding for secure digital delivery (Phase 9). */
+  DIGITAL_DELIVERY_BUCKET?: R2Bucket;
+  /** Active private KV namespace for MVP project ZIP storage. */
+  PROJECT_ASSETS?: KVNamespace;
+  /** Test-fixture compatibility only; never configured in production. */
+  PURCHASE_AVAILABILITY_BYPASS?: string;
+  /** Canonical frontend origin used for sitemap URLs. */
+  SITE_ORIGIN?: string;
 }
 
 export default {
@@ -58,22 +90,80 @@ export default {
     // --- Helper to attach CORS headers to responses ---
     const corsHeaders = buildCorsHeaders(request, env);
     const applyCors = (response: Response): Response => {
-      if (!corsHeaders) return response;
       const headers = new Headers(response.headers);
-      for (const [key, value] of Object.entries(corsHeaders)) {
-        headers.set(key, value);
-      }
+      headers.set('X-Content-Type-Options', 'nosniff');
+      headers.set('Referrer-Policy', 'no-referrer');
+      headers.set('Permissions-Policy', 'camera=(), geolocation=(), microphone=(), usb=()');
+      headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+      if (corsHeaders) for (const [key, value] of Object.entries(corsHeaders)) headers.set(key, value);
       return new Response(response.body, { status: response.status, headers });
     };
+
+    const policy = ratePolicy(path, method);
+    if (policy) {
+      const limited = await enforceRateLimit(request, ...policy);
+      if (limited) return applyCors(limited);
+    }
 
     try {
       // ----------------------------------------------------
       // Public Endpoints
       // ----------------------------------------------------
 
+      if ((path === '/sitemap.xml' || path === '/api/seo/sitemap.xml') && method === 'GET') {
+        if (!env.DB) return applyCors(error('INTERNAL_ERROR', 'Database is not configured', 500));
+        return applyCors(await handleSitemap(env.DB, env.SITE_ORIGIN));
+      }
+      if ((path === '/ads.txt' || path === '/api/monetization/ads.txt') && method === 'GET') {
+        if (!env.DB) return applyCors(error('INTERNAL_ERROR', 'Database is not configured', 500));
+        return applyCors(await handleAdsTxt(env.DB));
+      }
+
       // GET /api/health
       if (path === '/api/health' && method === 'GET') {
         return applyCors(await handleHealth(env.DB));
+      }
+
+      if (path === '/api/tools' && method === 'GET') {
+        if (!env.DB) return applyCors(error('INTERNAL_ERROR', 'Database is not configured', 500));
+        return applyCors(await handleGetPublicTools(env.DB));
+      }
+      if (path === '/api/site-settings/public' && method === 'GET') {
+        if (!env.DB) return applyCors(error('INTERNAL_ERROR', 'Database is not configured', 500));
+        return applyCors(await handleGetPublicSettings(env.DB));
+      }
+      if (path === '/api/customer-auth/status' && method === 'GET') {
+        if (!env.DB) return applyCors(error('INTERNAL_ERROR', 'Database is not configured', 500));
+        return applyCors(await handleCustomerAuthStatus(request, env.DB, env));
+      }
+      if (path === '/api/customer-auth/start' && method === 'POST') {
+        if (!env.DB) return applyCors(error('INTERNAL_ERROR', 'Database is not configured', 500));
+        return applyCors(await handleCustomerLoginStart(request, env.DB, env));
+      }
+      if (path === '/api/customer-auth/verify' && method === 'POST') {
+        if (!env.DB) return applyCors(error('INTERNAL_ERROR', 'Database is not configured', 500));
+        return applyCors(await handleCustomerLoginVerify(request, env.DB, env));
+      }
+      if (path === '/api/customer-auth/logout' && method === 'POST') {
+        if (!env.DB) return applyCors(error('INTERNAL_ERROR', 'Database is not configured', 500));
+        return applyCors(await handleCustomerLogout(request, env.DB));
+      }
+      if (path === '/api/customer/orders' && method === 'GET') {
+        if (!env.DB) return applyCors(error('INTERNAL_ERROR', 'Database is not configured', 500));
+        return applyCors(await handleCustomerOrders(request, env.DB));
+      }
+      if (path === '/api/analytics/events' && method === 'POST') {
+        if (!env.DB) return applyCors(error('INTERNAL_ERROR', 'Database is not configured', 500));
+        return applyCors(await handleAnalytics(request, env.DB));
+      }
+      if (path === '/api/affiliate-offers' && method === 'GET') {
+        if (!env.DB) return applyCors(error('INTERNAL_ERROR', 'Database is not configured', 500));
+        return applyCors(await handlePublicAffiliateOffers(request, env.DB));
+      }
+      const affiliateClickMatch = path.match(/^\/api\/affiliate-offers\/(\d+)\/click$/);
+      if (affiliateClickMatch && method === 'POST') {
+        if (!env.DB) return applyCors(error('INTERNAL_ERROR', 'Database is not configured', 500));
+        return applyCors(await handleAffiliateClick(request, affiliateClickMatch[1], env.DB));
       }
 
       // POST /api/auth/bootstrap (One-time setup for initial admin)
@@ -133,6 +223,31 @@ export default {
         return applyCors(await handleCreateOrder(request, env.DB, env));
       }
 
+      // GET /api/projects/:projectId/availability (safe release readiness)
+      const projectAvailabilityMatch = path.match(/^\/api\/projects\/([^/]+)\/availability$/);
+      if (projectAvailabilityMatch && method === 'GET') {
+        if (!env.DB) return applyCors(error('INTERNAL_ERROR', 'Database is not configured', 500));
+        return applyCors(
+          await handleGetProjectAvailability(projectAvailabilityMatch[1], env.DB, env)
+        );
+      }
+
+      if (path === '/api/purchases/recovery/request' && method === 'POST') {
+        if (!env.DB) return applyCors(error('INTERNAL_ERROR', 'Database is not configured', 500));
+        if (!env.EMAIL_PROVIDER && !(env.RESEND_API_KEY && env.EMAIL_FROM)) {
+          return applyCors(error('FEATURE_NOT_ENABLED', 'Purchase recovery email is not configured yet.', 503));
+        }
+        return applyCors(await handleRequestPurchaseRecovery(request, env.DB, env));
+      }
+
+      if (path === '/api/purchases/recovery/redeem' && method === 'POST') {
+        if (!env.DB) return applyCors(error('INTERNAL_ERROR', 'Database is not configured', 500));
+        if (!env.EMAIL_PROVIDER && !(env.RESEND_API_KEY && env.EMAIL_FROM)) {
+          return applyCors(error('FEATURE_NOT_ENABLED', 'Purchase recovery email is not configured yet.', 503));
+        }
+        return applyCors(await handleRedeemPurchaseRecovery(request, env.DB));
+      }
+
       // POST /api/orders/:orderId/verify-payment (Payment signature verification)
       const orderVerifyMatch = path.match(/^\/api\/orders\/([^/]+)\/verify-payment$/);
       if (orderVerifyMatch && method === 'POST') {
@@ -142,13 +257,39 @@ export default {
         return applyCors(await handleVerifyPayment(request, orderVerifyMatch[1], env.DB, env));
       }
 
+      // POST /api/orders/:orderId/payment/qr (Dynamic UPI QR with authoritative locked amount)
+      const orderQrMatch = path.match(/^\/api\/orders\/([^/]+)\/payment\/qr$/);
+      if (orderQrMatch && method === 'POST') {
+        if (!env.DB) {
+          return applyCors(error('INTERNAL_ERROR', 'Database is not configured', 500));
+        }
+        return applyCors(await handleCreateOrderQr(request, orderQrMatch[1], env.DB, env));
+      }
+
       // GET /api/orders/:orderId (Public safe order status)
       const publicOrderMatch = path.match(/^\/api\/orders\/([^/]+)$/);
       if (publicOrderMatch && method === 'GET') {
         if (!env.DB) {
           return applyCors(error('INTERNAL_ERROR', 'Database is not configured', 500));
         }
-        return applyCors(await handleGetOrderById(publicOrderMatch[1], env.DB));
+        return applyCors(await handleGetOrderById(request, publicOrderMatch[1], env.DB, env));
+      }
+
+      // GET /api/orders/:orderId/download (Secure digital delivery download, Phase 9)
+      const orderDownloadMatch = path.match(/^\/api\/orders\/([^/]+)\/download$/);
+      if (orderDownloadMatch && method === 'GET') {
+        if (!env.DB) {
+          return applyCors(error('INTERNAL_ERROR', 'Database is not configured', 500));
+        }
+        return applyCors(await handleDownloadDelivery(request, orderDownloadMatch[1], env.DB, env));
+      }
+
+      // POST /api/webhooks/razorpay (Razorpay server-to-server webhook reconciliation)
+      if (path === '/api/webhooks/razorpay' && method === 'POST') {
+        if (!env.DB) {
+          return error('INTERNAL_ERROR', 'Database is not configured', 500);
+        }
+        return await handleRazorpayWebhook(request, env.DB, env);
       }
 
       // ----------------------------------------------------
@@ -168,6 +309,35 @@ export default {
         // --- Dashboard Metrics ---
         if (path === '/api/admin/dashboard/metrics' && method === 'GET') {
           return applyCors(await handleGetAdminMetrics(env.DB));
+        }
+        if (path === '/api/admin/analytics' && method === 'GET') {
+          return applyCors(await handleAdminPlatformMetrics(env.DB));
+        }
+        if (path === '/api/admin/settings' && method === 'GET') {
+          return applyCors(await handleGetPublicSettings(env.DB));
+        }
+        if (path === '/api/admin/settings' && method === 'PUT') {
+          return applyCors(await handleUpdateSettings(request, env.DB));
+        }
+        if (path === '/api/admin/affiliate-offers' && method === 'GET') {
+          return applyCors(await handleAdminAffiliateList(env.DB));
+        }
+        if (path === '/api/admin/affiliate-offers' && method === 'POST') {
+          return applyCors(await handleAdminAffiliateSave(request, env.DB));
+        }
+        const adminAffiliateMatch = path.match(/^\/api\/admin\/affiliate-offers\/(\d+)$/);
+        if (adminAffiliateMatch && method === 'PUT') {
+          return applyCors(await handleAdminAffiliateSave(request, env.DB, adminAffiliateMatch[1]));
+        }
+        if (adminAffiliateMatch && method === 'DELETE') {
+          return applyCors(await handleAdminAffiliateArchive(adminAffiliateMatch[1], env.DB));
+        }
+        if (path === '/api/admin/users' && method === 'GET') {
+          return applyCors(await handleAdminCustomerUsers(env.DB));
+        }
+        const adminCustomerMatch = path.match(/^\/api\/admin\/users\/(\d+)\/status$/);
+        if (adminCustomerMatch && method === 'PATCH') {
+          return applyCors(await handleAdminCustomerStatus(request, adminCustomerMatch[1], env.DB));
         }
 
         // --- Admin Tools ---
@@ -191,6 +361,29 @@ export default {
         }
         if (path === '/api/admin/projects' && method === 'POST') {
           return applyCors(await handleSaveAdminProject(request, env.DB));
+        }
+        const projectReleaseActionMatch = path.match(
+          /^\/api\/admin\/projects\/([^/]+)\/releases\/(\d+)\/(publish|archive)$/
+        );
+        if (projectReleaseActionMatch && method === 'POST') {
+          const projectId = projectReleaseActionMatch[1];
+          const releaseId = Number(projectReleaseActionMatch[2]);
+          return applyCors(
+            projectReleaseActionMatch[3] === 'publish'
+              ? await handlePublishProjectRelease(projectId, releaseId, env.DB, env)
+              : await handleArchiveProjectRelease(projectId, releaseId, env.DB)
+          );
+        }
+        const projectReleasesMatch = path.match(
+          /^\/api\/admin\/projects\/([^/]+)\/releases$/
+        );
+        if (projectReleasesMatch && method === 'GET') {
+          return applyCors(await handleGetProjectReleases(projectReleasesMatch[1], env.DB));
+        }
+        if (projectReleasesMatch && method === 'POST') {
+          return applyCors(
+            await handleUploadProjectRelease(request, projectReleasesMatch[1], env.DB, env)
+          );
         }
         const adminProjectMatch = path.match(/^\/api\/admin\/projects\/([^/]+)$/);
         if (adminProjectMatch && method === 'PUT') {
@@ -252,6 +445,10 @@ export default {
       // Known public paths wrong method
       if (
         (path === '/api/health' && method !== 'GET') ||
+        ((path === '/sitemap.xml' || path === '/api/seo/sitemap.xml') && method !== 'GET') ||
+        ((path === '/ads.txt' || path === '/api/monetization/ads.txt') && method !== 'GET') ||
+        (path === '/api/affiliate-offers' && method !== 'GET') ||
+        (affiliateClickMatch && method !== 'POST') ||
         (path === '/api/auth/bootstrap' && method !== 'POST') ||
         (path === '/api/auth/login' && method !== 'POST') ||
         (path === '/api/auth/logout' && method !== 'POST') ||
@@ -259,8 +456,14 @@ export default {
         (path === '/api/requests' && method !== 'POST') ||
         (publicRequestMatch && method !== 'GET') ||
         (path === '/api/orders' && method !== 'POST') ||
+        (projectAvailabilityMatch && method !== 'GET') ||
+        (path === '/api/purchases/recovery/request' && method !== 'POST') ||
+        (path === '/api/purchases/recovery/redeem' && method !== 'POST') ||
         (orderVerifyMatch && method !== 'POST') ||
-        (publicOrderMatch && method !== 'GET')
+        (orderQrMatch && method !== 'POST') ||
+        (publicOrderMatch && method !== 'GET') ||
+        (orderDownloadMatch && method !== 'GET') ||
+        (path === '/api/webhooks/razorpay' && method !== 'POST')
       ) {
         return applyCors(error('METHOD_NOT_ALLOWED', 'Method not allowed', 405));
       }

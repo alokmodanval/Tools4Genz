@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import Container from '@/components/layout/Container';
 import SEO from '@/components/SEO';
@@ -10,7 +11,9 @@ import { ProjectCategory } from '@/types/project';
 
 const ProjectsPage = () => {
   const { t } = useTranslation();
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchParams] = useSearchParams();
+  const [manualSearch, setManualSearch] = useState<string | null>(null);
+  const searchQuery = manualSearch ?? searchParams.get('search') ?? '';
   const [selectedCategory, setSelectedCategory] = useState<ProjectCategory | 'all'>('all');
   const [selectedTechnology, setSelectedTechnology] = useState('all');
   const [sortBy, setSortBy] = useState('default');
@@ -44,7 +47,7 @@ const ProjectsPage = () => {
 
   return (
     <>
-      <SEO title={t('seo.projects.title', 'Projects - Tools4Genz')} description={t('seo.projects.description', 'Browse ready-made projects.')} />
+      <SEO title={t('seo.projects.title', 'Software Project Source Code Catalog | Tools4Genz')} description={t('seo.projects.description', 'Explore practical web, AI, Java, Python, React, and software project source-code examples with clear technology and feature details.')} canonicalPath="/projects" />
       
       <div className="bg-gray-50 dark:bg-gray-900 min-h-screen py-16">
         <Container>
@@ -59,7 +62,7 @@ const ProjectsPage = () => {
 
           <ProjectFilters 
             searchQuery={searchQuery}
-            onSearchChange={setSearchQuery}
+            onSearchChange={setManualSearch}
             selectedCategory={selectedCategory}
             onCategoryChange={(cat) => setSelectedCategory(cat as ProjectCategory | 'all')}
             selectedTechnology={selectedTechnology}

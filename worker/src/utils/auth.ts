@@ -7,6 +7,7 @@
 
 import { adminSessionRepository, D1Database } from '../db/repository';
 import { error } from './api';
+import { hashSessionToken } from './sessionToken';
 
 export interface AdminSession {
   userId: number;
@@ -16,7 +17,7 @@ export interface AdminSession {
 }
 
 /**
- * Extract session token from Cookie header (or fallback to Authorization header).
+ * Extract the Admin session token from its HttpOnly cookie.
  */
 export function extractSessionToken(request: Request): string | null {
   const cookieHeader = request.headers.get('cookie') || '';
@@ -26,12 +27,6 @@ export function extractSessionToken(request: Request): string | null {
     cookieHeader.match(/t4g_admin_session=([^;]+)/);
   if (match) {
     return decodeURIComponent(match[1].trim());
-  }
-
-  // Backup support for Authorization: Bearer <token>
-  const authHeader = request.headers.get('authorization') || '';
-  if (authHeader.startsWith('Bearer ')) {
-    return authHeader.substring(7).trim();
   }
 
   return null;
@@ -50,7 +45,7 @@ export async function verifySession(
     return null;
   }
 
-  const session = await adminSessionRepository.findValidSession(db, token);
+  const session = await adminSessionRepository.findValidSession(db, await hashSessionToken(token));
   if (!session || session.user_status !== 'active') {
     return null;
   }

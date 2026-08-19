@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { authStore } from '@/services/adminService';
+import SEO from '@/components/SEO';
 
 export const AdminLayout: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -19,6 +20,8 @@ export const AdminLayout: React.FC = () => {
     { path: '/admin/services', label: t('admin.nav.services', 'Manage Services'), icon: '💼' },
     { path: '/admin/categories', label: t('admin.nav.categories', 'Manage Categories'), icon: '📁' },
     { path: '/admin/requests', label: t('admin.nav.requests', 'Manage Requests'), icon: '📥' },
+    { path: '/admin/users', label: t('admin.nav.users', 'Customers'), icon: '👥' },
+    { path: '/admin/affiliates', label: t('admin.nav.affiliates', 'Affiliates'), icon: '🔗' },
     { path: '/admin/settings', label: t('admin.nav.settings', 'Settings'), icon: '⚙️' },
   ];
 
@@ -40,6 +43,8 @@ export const AdminLayout: React.FC = () => {
   };
 
   return (
+    <>
+    <SEO title="Admin Dashboard | Tools4Genz" description="Tools4Genz administration area." noindex />
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex text-gray-800 dark:text-gray-100">
       {/* Sidebar - Desktop */}
       <aside className="hidden lg:flex flex-col w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700">
@@ -201,6 +206,7 @@ export const AdminLayout: React.FC = () => {
         </main>
       </div>
     </div>
+    </>
   );
 };
 

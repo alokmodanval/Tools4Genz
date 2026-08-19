@@ -1,5 +1,8 @@
 @import 'tailwindcss';
 
+/* Tailwind v4 manual theme selector. The existing theme hook toggles this class. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --color-primary-50: #eef2ff;
   --color-primary-100: #e0e7ff;

@@ -56,8 +56,8 @@ export async function verifyRazorpaySignature(
       .toLowerCase();
 
     return constantTimeEqual(generatedHex, signature.toLowerCase().trim());
-  } catch (err) {
-    console.error('Signature verification error:', err);
+  } catch {
+    console.error('Payment signature verification could not complete');
     return false;
   }
 }
@@ -117,7 +117,7 @@ export async function createRazorpayOrder(
 
   if (!response.ok) {
     const errorBody = await response.text();
-    console.error('Razorpay Order creation failed:', response.status, errorBody);
+    console.error('Razorpay order creation failed with provider status', response.status);
     throw new Error(`Razorpay API error (${response.status}): ${errorBody}`);
   }
 
@@ -127,4 +127,146 @@ export async function createRazorpayOrder(
     amount: data.amount,
     currency: data.currency,
   };
+}
+
+/**
+ * Razorpay QR Codes API response structure.
+ */
+export interface RazorpayQrCodeResponse {
+  id: string; // e.g. qr_HMs15hP0i0r21e
+  entity: string;
+  name: string;
+  usage: string; // single_use
+  type: string; // upi_qr
+  image_url: string;
+  payment_amount: number; // in paise
+  status: string; // active | closed
+  description?: string;
+  fixed_amount: boolean;
+  close_by?: number;
+  notes?: Record<string, string>;
+}
+
+/**
+ * Create a Dynamic Single-Use Fixed-Amount UPI QR code via Razorpay REST API.
+ * POST https://api.razorpay.com/v1/payments/qr_codes
+ */
+export async function createRazorpayQrCode(
+  params: {
+    orderId: string;
+    projectId: string;
+    amount: number; // in INR
+    currency?: string;
+    description?: string;
+    expiryMinutes?: number;
+  },
+  keyId: string,
+  keySecret: string
+): Promise<{
+  id: string;
+  imageUrl: string;
+  paymentAmount: number;
+  amount: number;
+  currency: string;
+  status: string;
+  closeBy: number;
+}> {
+  const amountInPaise = Math.round(params.amount * 100);
+  const currency = params.currency || 'INR';
+  const expiryMins = params.expiryMinutes || 15;
+  const closeBy = Math.floor(Date.now() / 1000) + expiryMins * 60;
+
+  const authHeader = `Basic ${btoa(`${keyId}:${keySecret}`)}`;
+
+  const body = {
+    type: 'upi_qr',
+    name: `Tools4Genz Order ${params.orderId}`,
+    usage: 'single_use',
+    fixed_amount: true,
+    payment_amount: amountInPaise,
+    description: params.description || `Tools4Genz Project Purchase ${params.orderId}`,
+    close_by: closeBy,
+    notes: {
+      order_id: params.orderId,
+      project_id: params.projectId,
+    },
+  };
+
+  const response = await fetch('https://api.razorpay.com/v1/payments/qr_codes', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: authHeader,
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.text();
+    console.error('Razorpay QR creation failed with provider status', response.status);
+    throw new Error(`Razorpay QR API error (${response.status}): ${errorBody}`);
+  }
+
+  const data = (await response.json()) as RazorpayQrCodeResponse;
+  return {
+    id: data.id,
+    imageUrl: data.image_url,
+    paymentAmount: data.payment_amount,
+    amount: params.amount,
+    currency,
+    status: data.status,
+    closeBy,
+  };
+}
+
+/**
+ * Verify Razorpay Webhook signature using HMAC-SHA256.
+ *
+ * According to Razorpay documentation:
+ * signature = HMAC-SHA256(raw_request_body, webhook_secret)
+ */
+export async function verifyRazorpayWebhookSignature(
+  rawBody: string,
+  signature: string,
+  webhookSecret: string
+): Promise<boolean> {
+  if (!rawBody || !signature || !webhookSecret) {
+    return false;
+  }
+
+  try {
+    const encoder = new TextEncoder();
+    const keyData = encoder.encode(webhookSecret);
+    const msgData = encoder.encode(rawBody);
+
+    const cryptoKey = await crypto.subtle.importKey(
+      'raw',
+      keyData,
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['sign']
+    );
+
+    const signatureBuffer = await crypto.subtle.sign('HMAC', cryptoKey, msgData);
+    const generatedHex = Array.from(new Uint8Array(signatureBuffer))
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('')
+      .toLowerCase();
+
+    return constantTimeEqual(generatedHex, signature.toLowerCase().trim());
+  } catch {
+    console.error('Webhook signature verification could not complete');
+    return false;
+  }
+}
+
+/**
+ * Compute SHA-256 hash of a string.
+ */
+export async function computeSha256(data: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const hashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(data));
+  return Array.from(new Uint8Array(hashBuffer))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
 }

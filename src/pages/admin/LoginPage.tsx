@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { authStore } from '@/services/adminService';
+import SEO from '@/components/SEO';
 
 export const LoginPage: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -64,6 +65,8 @@ export const LoginPage: React.FC = () => {
 
   if (checkingSession) {
     return (
+      <>
+      <SEO title="Admin Login | Tools4Genz" description="Secure Tools4Genz administrator login." noindex />
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">
         <div className="flex flex-col items-center gap-3">
           <div className="animate-spin rounded-full h-10 w-10 border-4 border-primary-200 border-t-primary-600"></div>
@@ -72,10 +75,13 @@ export const LoginPage: React.FC = () => {
           </span>
         </div>
       </div>
+      </>
     );
   }
 
   return (
+    <>
+    <SEO title="Admin Login | Tools4Genz" description="Secure Tools4Genz administrator login." noindex />
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       {/* Top Bar for Back & Language switch */}
       <div className="absolute top-6 right-6 flex items-center gap-3">
@@ -200,6 +206,7 @@ export const LoginPage: React.FC = () => {
         </div>
       </div>
     </div>
+    </>
   );
 };
 

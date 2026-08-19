@@ -1,12 +1,5 @@
 import { BaseRequestData, RequestSubmissionResult } from '@/types/request';
-
-/**
- * API base URL — configured via VITE_API_BASE_URL.
- * In development, set to http://localhost:<wrangler-port>.
- * In production, set to the deployed Worker domain (e.g. https://api.tools4genz.com).
- * Falls back to /api relative-path routing when running against Cloudflare Pages.
- */
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
+import { API_BASE_URL } from '@/config/api';
 
 /**
  * Submit a student or client request via the Cloudflare Worker API.

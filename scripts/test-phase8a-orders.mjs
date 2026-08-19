@@ -146,6 +146,8 @@ class InMemoryPreparedStatement {
         paid_at: vals[15],
         created_at: vals[16],
         updated_at: vals[17],
+        access_token_hash: vals[18],
+        access_token_created_at: vals[19],
       };
       this.db.tables.orders.push(row);
       return { meta: { changes: 1, last_row_id: id } };
@@ -233,6 +235,7 @@ async function runTests() {
     ALLOWED_ORIGINS: 'http://localhost:5173,https://tools4genz.com',
     RAZORPAY_KEY_ID: 'rzp_test_public_key',
     RAZORPAY_KEY_SECRET: TEST_SECRET,
+    PURCHASE_AVAILABILITY_BYPASS: 'test-only',
   };
 
   // 1. Order Validation & Authoritative Price Resolution
@@ -298,6 +301,7 @@ async function runTests() {
   const getOrderResp = await worker.fetch(
     new Request(`https://api.tools4genz.com/api/orders/${orderData.orderId}`, {
       method: 'GET',
+      headers: { Authorization: `Purchase ${orderData.accessToken}` },
     }),
     env
   );
@@ -369,12 +373,13 @@ async function runTests() {
   const postPaidOrderResp = await worker.fetch(
     new Request(`https://api.tools4genz.com/api/orders/${orderData.orderId}`, {
       method: 'GET',
+      headers: { Authorization: `Purchase ${orderData.accessToken}` },
     }),
     env
   );
   const postPaidData = (await postPaidOrderResp.json()).data;
   assert(postPaidData.status === 'paid', 'D1 database status confirmed as paid');
-  assert(postPaidData.providerPaymentId === testPaymentId, 'D1 database contains payment reference');
+  assert(postPaidData.providerPaymentId === undefined, 'Customer status does not expose provider payment reference');
 
   // 5. Method Not Allowed & Security
   console.log('\n--- 5. Method Not Allowed & Security Checks ---');

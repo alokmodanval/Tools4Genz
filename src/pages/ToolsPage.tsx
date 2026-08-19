@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import Container from '@/components/layout/Container';
 import SEO from '@/components/SEO';
@@ -7,14 +8,19 @@ import ToolGrid from '@/components/tools/ToolGrid';
 import { toolCategories } from '@/data/categories';
 import { getAllTools, searchTools } from '@/tools/registry';
 import { ToolCategory } from '@/types/tool';
+import { platformService } from '@/services/platformService';
+import AdSlot from '@/components/monetization/AdSlot';
 
 const ToolsPage = () => {
   const { t } = useTranslation();
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchParams] = useSearchParams();
+  const [manualSearch, setManualSearch] = useState<string | null>(null);
+  const searchQuery = manualSearch ?? searchParams.get('search') ?? '';
   const [selectedCategory, setSelectedCategory] = useState<ToolCategory | 'all'>('all');
   const [sortBy, setSortBy] = useState<string>('featured');
 
-  const allTools = useMemo(() => getAllTools(), []);
+  const [allTools, setAllTools] = useState(() => getAllTools());
+  useEffect(() => { let active = true; platformService.publicTools().then((tools) => { if (active) setAllTools(tools); }); return () => { active = false; }; }, []);
 
   const filteredTools = useMemo(() => {
     return searchTools(allTools, searchQuery, selectedCategory, sortBy);
@@ -26,8 +32,9 @@ const ToolsPage = () => {
   return (
     <>
       <SEO
-        title={t('seo.tools.title', 'Explore All Tools - Tools4Genz')}
-        description={t('seo.tools.description', 'Browse our collection of fast, reliable AI, developer, writing, and productivity tools.')}
+        title={t('seo.tools.title', 'Free Online Tools for Work and Study | Tools4Genz')}
+        description={t('seo.tools.description', 'Browse useful online text, developer, calculator, converter, writing, and productivity tools from Tools4Genz.')}
+        canonicalPath="/tools"
       />
 
       <div className="bg-gray-50 dark:bg-gray-900 min-h-screen py-16">
@@ -43,7 +50,7 @@ const ToolsPage = () => {
 
           <ToolFilters
             searchQuery={searchQuery}
-            onSearchChange={setSearchQuery}
+            onSearchChange={setManualSearch}
             selectedCategory={selectedCategory}
             onCategoryChange={setSelectedCategory}
             categories={toolCategories}
@@ -59,6 +66,8 @@ const ToolsPage = () => {
               <ToolGrid tools={featuredTools} />
             </div>
           )}
+
+          <AdSlot placement="tools_listing" />
 
           <div>
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">

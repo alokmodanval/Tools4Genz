@@ -6,7 +6,7 @@ interface AdminFieldProps {
   name: string;
   value: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => void;
-  type?: 'text' | 'textarea' | 'select' | 'checkbox' | 'date';
+  type?: 'text' | 'number' | 'textarea' | 'select' | 'checkbox' | 'date';
   options?: { value: string; label: string }[];
   placeholder?: string;
   required?: boolean;
@@ -89,9 +89,9 @@ export const AdminField: React.FC<AdminFieldProps> = ({
         />
       )}
 
-      {type === 'text' && (
+      {(type === 'text' || type === 'number') && (
         <input
-          type="text"
+          type={type}
           name={name}
           value={value}
           onChange={onChange}

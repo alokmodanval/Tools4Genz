@@ -20,7 +20,7 @@ const StudentsPage = () => {
 
   return (
     <>
-      <SEO title={t('seo.students.title', 'For Students - Tools4Genz')} description={t('seo.students.description', 'Project assistance for students.')} />
+      <SEO title={t('seo.students.title', 'Software Project Support for Students | Tools4Genz')} description={t('seo.students.description', 'Explore practical tools, software project guidance, documentation support, and development services for students.')} />
       
       <div className="bg-gray-50 dark:bg-gray-900 min-h-screen pb-20">
         <section className="bg-indigo-600 dark:bg-indigo-900 py-20 text-center text-white">

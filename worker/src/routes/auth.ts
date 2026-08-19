@@ -2,6 +2,8 @@ import { adminSessionRepository, adminUserRepository, D1Database } from '../db/r
 import { error, success } from '../utils/api';
 import { verifySession, extractSessionToken } from '../utils/auth';
 import { hashPassword, verifyPassword } from '../utils/password';
+import { hashSessionToken } from '../utils/sessionToken';
+import { BodyTooLargeError, readJsonBody } from '../utils/body';
 
 /**
  * POST /api/auth/bootstrap
@@ -21,8 +23,9 @@ export async function handleBootstrap(request: Request, db: D1Database): Promise
 
   let rawBody: unknown;
   try {
-    rawBody = await request.json();
-  } catch {
+    rawBody = await readJsonBody(request);
+  } catch (caught) {
+    if (caught instanceof BodyTooLargeError) return error('PAYLOAD_TOO_LARGE', 'Request body is too large', 413);
     return error('BAD_JSON', 'Request body must be valid JSON', 400);
   }
 
@@ -64,7 +67,7 @@ export async function handleBootstrap(request: Request, db: D1Database): Promise
 
   await adminSessionRepository.create(db, {
     admin_user_id: userId,
-    session_token: token,
+    session_token_hash: await hashSessionToken(token),
     expires_at: expiresAt,
   });
 
@@ -73,7 +76,7 @@ export async function handleBootstrap(request: Request, db: D1Database): Promise
     `session_token=${token}`,
     'Path=/',
     'HttpOnly',
-    'SameSite=Lax',
+    `SameSite=${isHttps ? 'None' : 'Lax'}`,
     `Max-Age=${maxAgeSeconds}`,
   ];
   if (isHttps) {
@@ -103,8 +106,9 @@ export async function handleBootstrap(request: Request, db: D1Database): Promise
 export async function handleLogin(request: Request, db: D1Database): Promise<Response> {
   let rawBody: unknown;
   try {
-    rawBody = await request.json();
-  } catch {
+    rawBody = await readJsonBody(request);
+  } catch (caught) {
+    if (caught instanceof BodyTooLargeError) return error('PAYLOAD_TOO_LARGE', 'Request body is too large', 413);
     return error('BAD_JSON', 'Request body must be valid JSON', 400);
   }
 
@@ -146,7 +150,7 @@ export async function handleLogin(request: Request, db: D1Database): Promise<Res
 
   await adminSessionRepository.create(db, {
     admin_user_id: user.id,
-    session_token: token,
+    session_token_hash: await hashSessionToken(token),
     expires_at: expiresAt,
   });
 
@@ -155,7 +159,7 @@ export async function handleLogin(request: Request, db: D1Database): Promise<Res
     `session_token=${token}`,
     'Path=/',
     'HttpOnly',
-    'SameSite=Lax',
+    `SameSite=${isHttps ? 'None' : 'Lax'}`,
     `Max-Age=${maxAgeSeconds}`,
   ];
   if (isHttps) {
@@ -182,7 +186,7 @@ export async function handleLogin(request: Request, db: D1Database): Promise<Res
 export async function handleLogout(request: Request, db: D1Database): Promise<Response> {
   const token = extractSessionToken(request);
   if (token) {
-    await adminSessionRepository.deleteByToken(db, token);
+    await adminSessionRepository.deleteByTokenHash(db, await hashSessionToken(token));
   }
 
   const isHttps = new URL(request.url).protocol === 'https:';
@@ -190,7 +194,7 @@ export async function handleLogout(request: Request, db: D1Database): Promise<Re
     'session_token=',
     'Path=/',
     'HttpOnly',
-    'SameSite=Lax',
+    `SameSite=${isHttps ? 'None' : 'Lax'}`,
     'Max-Age=0',
   ];
   if (isHttps) {

@@ -7,6 +7,15 @@
 export const MAX_BODY_BYTES = 64 * 1024; // 64 KB
 
 export async function readJsonBody(request: Request): Promise<unknown> {
+  const text = await readTextBody(request);
+  try {
+    return JSON.parse(text) as unknown;
+  } catch {
+    throw new BadJsonError();
+  }
+}
+
+export async function readTextBody(request: Request): Promise<string> {
   const contentLength = Number(request.headers.get('Content-Length') ?? '0');
 
   if (contentLength > MAX_BODY_BYTES) {
@@ -19,11 +28,7 @@ export async function readJsonBody(request: Request): Promise<unknown> {
     throw new BodyTooLargeError();
   }
 
-  try {
-    return JSON.parse(text) as unknown;
-  } catch {
-    throw new BadJsonError();
-  }
+  return text;
 }
 
 export class BodyTooLargeError extends Error {

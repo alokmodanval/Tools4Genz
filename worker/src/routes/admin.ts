@@ -5,9 +5,36 @@ import {
   adminServiceRepository,
   adminToolRepository,
   D1Database,
+  projectReleaseRepository,
   requestRepository,
 } from '../db/repository';
+import { findAuthoritativeProject } from '../data/projects';
+import { resolveAssetStorage, StorageBindings } from '../services/assetStorage';
+import {
+  MAX_PROJECT_RELEASE_BYTES,
+  saveProjectRelease,
+} from '../services/projectReleases';
 import { error, success } from '../utils/api';
+import { validateAdminToolPayload } from './platform';
+
+export type AdminAssetEnv = StorageBindings;
+
+function safeRelease(release: Awaited<ReturnType<typeof projectReleaseRepository.findById>>) {
+  if (!release) return null;
+  return {
+    id: release.id,
+    projectId: release.project_id,
+    version: release.version,
+    filename: release.filename,
+    contentType: release.content_type,
+    fileSize: release.file_size,
+    sha256: release.sha256,
+    status: release.status,
+    createdAt: release.created_at,
+    updatedAt: release.updated_at,
+    publishedAt: release.published_at,
+  };
+}
 
 // ============================================================
 // Dashboard Metrics
@@ -68,6 +95,8 @@ export async function handleSaveAdminTool(
   if (!body.id || !body.name || !body.slug) {
     return error('VALIDATION_ERROR', 'Tool id, slug, and name are required', 400);
   }
+  const validationError = await validateAdminToolPayload(db, body);
+  if (validationError) return validationError;
 
   await adminToolRepository.upsert(db, {
     id: String(body.id),
@@ -107,6 +136,8 @@ export async function handleUpdateAdminTool(
   const existing = await adminToolRepository.getById(db, toolId);
   const existingParsed = existing ? (JSON.parse(existing.data) as Record<string, unknown>) : {};
   const merged: Record<string, unknown> = { ...existingParsed, ...body, id: toolId };
+  const validationError = await validateAdminToolPayload(db, merged, toolId);
+  if (validationError) return validationError;
 
   await adminToolRepository.upsert(db, {
     id: toolId,
@@ -125,11 +156,14 @@ export async function handleDeleteAdminTool(
   id: string,
   db: D1Database
 ): Promise<Response> {
-  const deleted = await adminToolRepository.delete(db, id);
-  if (!deleted) {
+  const existing = await adminToolRepository.getById(db, id);
+  if (!existing) {
     return error('NOT_FOUND', 'Tool not found', 404);
   }
-  return success({ deleted: true, id });
+  let data: Record<string, unknown> = {}; try { data = JSON.parse(existing.data); } catch { /* safe fallback */ }
+  data.status = 'disabled';
+  await adminToolRepository.upsert(db, { id: existing.id, slug: existing.slug, name: existing.name, category: existing.category, status: 'disabled', featured: 0, data: JSON.stringify(data) });
+  return success({ archived: true, id });
 }
 
 // ============================================================
@@ -244,6 +278,124 @@ export async function handleDeleteAdminProject(
     return error('NOT_FOUND', 'Project not found', 404);
   }
   return success({ deleted: true, id });
+}
+
+// ============================================================
+// Project Release / Private Asset Handlers (Phase 10)
+// ============================================================
+export async function handleGetProjectReleases(
+  projectId: string,
+  db: D1Database
+): Promise<Response> {
+  const project =
+    (await adminProjectRepository.getById(db, projectId)) || findAuthoritativeProject(projectId);
+  if (!project) return error('NOT_FOUND', 'Project not found', 404);
+  const releases = await projectReleaseRepository.listByProjectId(db, projectId);
+  return success(releases.map((release) => safeRelease(release)));
+}
+
+export async function handleUploadProjectRelease(
+  request: Request,
+  projectId: string,
+  db: D1Database,
+  env: AdminAssetEnv
+): Promise<Response> {
+  const project =
+    (await adminProjectRepository.getById(db, projectId)) || findAuthoritativeProject(projectId);
+  if (!project) return error('NOT_FOUND', 'Project not found', 404);
+  if (!env.PROJECT_ASSETS) {
+    return error('STORAGE_NOT_CONFIGURED', 'Private KV project storage is not configured', 503);
+  }
+
+  const contentLength = Number(request.headers.get('content-length') || '0');
+  if (contentLength > MAX_PROJECT_RELEASE_BYTES + 1024 * 1024) {
+    return error('FILE_TOO_LARGE', 'Project ZIP exceeds the 24 MiB upload limit', 413);
+  }
+
+  let form: FormData;
+  try {
+    form = await request.formData();
+  } catch {
+    return error('VALIDATION_ERROR', 'Expected multipart project release upload', 400);
+  }
+
+  const version = String(form.get('version') || '').trim();
+  const file = form.get('file');
+  if (!/^[a-zA-Z0-9][a-zA-Z0-9._-]{0,31}$/.test(version)) {
+    return error('VALIDATION_ERROR', 'Version must use 1-32 letters, numbers, dots, dashes, or underscores', 400);
+  }
+  if (!file || typeof file === 'string' || typeof file.arrayBuffer !== 'function') {
+    return error('VALIDATION_ERROR', 'A ZIP file is required', 400);
+  }
+
+  const filename = file.name.replace(/^.*[\\/]/, '').replace(/[^a-zA-Z0-9._ -]/g, '-');
+  const allowedTypes = new Set([
+    'application/zip',
+    'application/x-zip-compressed',
+    'application/octet-stream',
+  ]);
+  if (!filename.toLowerCase().endsWith('.zip') || (file.type && !allowedTypes.has(file.type))) {
+    return error('UNSAFE_FILE_TYPE', 'Only ZIP project releases are allowed', 415);
+  }
+  if (file.size <= 0 || file.size > MAX_PROJECT_RELEASE_BYTES) {
+    return error('FILE_TOO_LARGE', 'Project ZIP must be between 1 byte and 24 MiB', 413);
+  }
+
+  const bytes = await file.arrayBuffer();
+  const signature = new Uint8Array(bytes, 0, Math.min(2, bytes.byteLength));
+  if (signature.length < 2 || signature[0] !== 0x50 || signature[1] !== 0x4b) {
+    return error('UNSAFE_FILE_TYPE', 'Uploaded file is not a valid ZIP container', 415);
+  }
+
+  try {
+    const release = await saveProjectRelease(db, env, {
+      projectId,
+      version,
+      filename,
+      contentType: file.type || 'application/zip',
+      bytes,
+    });
+    if (!release) return error('INTERNAL_ERROR', 'Release could not be saved', 500);
+    return success(safeRelease(release), 201);
+  } catch {
+    console.error(`[ProjectRelease] Upload failed for project ${projectId}`);
+    return error('STORAGE_ERROR', 'Project release upload failed', 502);
+  }
+}
+
+export async function handlePublishProjectRelease(
+  projectId: string,
+  releaseId: number,
+  db: D1Database,
+  env: AdminAssetEnv
+): Promise<Response> {
+  const release = await projectReleaseRepository.findById(db, releaseId);
+  if (!release || release.project_id !== projectId) {
+    return error('NOT_FOUND', 'Project release not found', 404);
+  }
+  const provider = release.storage_provider === 'kv' ? 'kv' : 'r2';
+  const storage = resolveAssetStorage(env, provider);
+  if (!storage) {
+    return error('STORAGE_NOT_CONFIGURED', `Private ${provider.toUpperCase()} project storage is not configured`, 503);
+  }
+  if (!(await storage.exists(release.r2_key))) {
+    return error('RELEASE_OBJECT_MISSING', 'Release ZIP is missing from private storage', 409);
+  }
+  const published = await projectReleaseRepository.publish(db, release);
+  return success(safeRelease(published));
+}
+
+export async function handleArchiveProjectRelease(
+  projectId: string,
+  releaseId: number,
+  db: D1Database
+): Promise<Response> {
+  const release = await projectReleaseRepository.findById(db, releaseId);
+  if (!release || release.project_id !== projectId) {
+    return error('NOT_FOUND', 'Project release not found', 404);
+  }
+  await projectReleaseRepository.archive(db, releaseId);
+  return success({ archived: true, releaseId });
 }
 
 // ============================================================

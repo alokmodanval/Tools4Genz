@@ -20,7 +20,7 @@ const ClientsPage = () => {
 
   return (
     <>
-      <SEO title={t('seo.clients.title', 'For Businesses - Tools4Genz')} description={t('seo.clients.description', 'Custom software solutions for businesses.')} />
+      <SEO title={t('seo.clients.title', 'Custom Software Services for Businesses | Tools4Genz')} description={t('seo.clients.description', 'Request websites, web applications, workflow tools, integrations, and custom software shaped around real business requirements.')} />
       
       <div className="bg-gray-50 dark:bg-gray-900 min-h-screen pb-20">
         <section className="bg-slate-800 py-20 text-center text-white">

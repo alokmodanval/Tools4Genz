@@ -20,6 +20,26 @@ binding = "DB"
 database_name = "tools4genz-db"
 database_id = "92ad56fb-4ece-4bf4-9e57-1df377c8f2fd"
 
+# --- Workers KV binding (active MVP private project asset storage) ---
+[[kv_namespaces]]
+binding = "PROJECT_ASSETS"
+id = "173c5c232cb949128213322785737d76"
+
+# --- R2 bucket binding (Phase 9 — Digital Delivery) ---
+# The bucket MUST remain private. The Worker is the ONLY component that
+# reads objects from it. Never expose the bucket publicly.
+#
+# Deployment steps (run once):
+#   1. wrangler r2 bucket create tools4genz-digital-delivery
+#   2. Uncomment the [[r2_buckets]] block below.
+#   3. Upload/publish project releases through the protected admin UI/API.
+#      Shared objects use: projects/<project-id>/releases/<version>/release.zip
+#   4. wrangler deploy
+#
+# [[r2_buckets]]
+# binding = "DIGITAL_DELIVERY_BUCKET"
+# bucket_name = "tools4genz-digital-delivery"
+
 # --- Migrations directory ---
 # wrangler d1 migrations apply tools4genz-db --local    (local dev)
 # wrangler d1 migrations apply tools4genz-db            (production)
@@ -28,7 +48,13 @@ database_id = "92ad56fb-4ece-4bf4-9e57-1df377c8f2fd"
 # Comma-separated list of additional allowed allowed CORS origins.
 # The worker already allows localhost dev ports and https://tools4genz.com.
 [vars]
-ALLOWED_ORIGINS = "https://tools4genz.com,https://www.tools4genz.com"
+ALLOWED_ORIGINS = "https://tools4genz.com,https://www.tools4genz.com,https://tools4genz.pages.dev"
+# Keep canonical output on the reachable Pages host until the custom domain is live.
+# After DNS activation, change both to https://tools4genz.com and redeploy.
+SITE_URL = "https://tools4genz.com"
+SITE_ORIGIN = "https://tools4genz.pages.dev"
+# Configure EMAIL_FROM only after the Resend sending domain is verified.
+# EMAIL_FROM = "Tools4Genz <orders@send.tools4genz.com>"
 
 # --- Production route (UNCOMMENT when the API domain is live) ---
 # routes = [

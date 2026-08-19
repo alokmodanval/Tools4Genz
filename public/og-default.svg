@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="title desc">
+  <title id="title">Tools4Genz</title>
+  <desc id="desc">Smart tools, practical projects, and digital solutions</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#020617"/>
+      <stop offset="0.55" stop-color="#312e81"/>
+      <stop offset="1" stop-color="#4f46e5"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" rx="36" fill="url(#bg)"/>
+  <circle cx="1030" cy="110" r="190" fill="#818cf8" opacity=".15"/>
+  <circle cx="110" cy="585" r="230" fill="#22d3ee" opacity=".1"/>
+  <text x="90" y="285" fill="white" font-family="Inter,Arial,sans-serif" font-size="92" font-weight="800">Tools<tspan fill="#60a5fa">4</tspan><tspan fill="#5eead4">Genz</tspan></text>
+  <text x="96" y="370" fill="#e0e7ff" font-family="Inter,Arial,sans-serif" font-size="38">Smart tools, practical projects</text>
+  <text x="96" y="423" fill="#e0e7ff" font-family="Inter,Arial,sans-serif" font-size="38">and digital solutions</text>
+</svg>

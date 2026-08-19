@@ -32,9 +32,9 @@ export const ToolHeader: React.FC<ToolHeaderProps> = ({ tool, className = '' }) 
       )}
       <div className="flex-1">
         <div className="flex flex-wrap items-center gap-3 mb-2">
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">
+          <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">
             {tool.name}
-          </h1>
+          </h2>
           <Badge variant="primary">{tool.category}</Badge>
           {tool.status && (
             <Badge variant={getStatusBadgeVariant(tool.status)}>

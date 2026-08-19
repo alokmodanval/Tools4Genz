@@ -22,4 +22,12 @@ i18n
     },
   });
 
+if (typeof document !== 'undefined') {
+  const syncDocumentLanguage = (language: string) => {
+    document.documentElement.lang = language.startsWith('hi') ? 'hi' : 'en';
+  };
+  syncDocumentLanguage(i18n.language);
+  i18n.on('languageChanged', syncDocumentLanguage);
+}
+
 export default i18n;

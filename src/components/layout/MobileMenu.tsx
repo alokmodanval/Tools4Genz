@@ -1,8 +1,10 @@
-import React, { useEffect } from 'react';
-import { NavLink } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/hooks/useTheme';
 import { useLanguage } from '@/hooks/useLanguage';
+import { getSiteSearchDestination } from '@/utils/siteSearch';
+import { useCustomerAuth } from '@/contexts/CustomerAuthContext';
 
 export interface NavLinkItem {
   to: string;
@@ -20,6 +22,17 @@ const MobileMenu: React.FC<MobileMenuProps> = ({ isOpen, onClose, navLinks }) =>
   const { t } = useTranslation();
   const { toggleTheme } = useTheme();
   const { language, changeLanguage } = useLanguage();
+  const [searchQuery, setSearchQuery] = useState('');
+  const navigate = useNavigate();
+  const { enabled: customerLoginEnabled, user, logout } = useCustomerAuth();
+  const submitSearch = (event: React.FormEvent) => {
+    event.preventDefault();
+    const destination = getSiteSearchDestination(searchQuery);
+    if (destination) {
+      navigate(destination);
+      onClose();
+    }
+  };
   
   const toggleLanguage = () => {
     changeLanguage(language.startsWith('hi') ? 'en' : 'hi');
@@ -70,7 +83,7 @@ const MobileMenu: React.FC<MobileMenuProps> = ({ isOpen, onClose, navLinks }) =>
         </div>
         
         <div className="mb-6">
-          <div className="relative">
+          <form onSubmit={submitSearch} role="search" className="relative">
             <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-surface-400">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -78,10 +91,13 @@ const MobileMenu: React.FC<MobileMenuProps> = ({ isOpen, onClose, navLinks }) =>
             </div>
             <input 
               type="text" 
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              aria-label="Search tools and projects"
               placeholder={t('nav.search', 'Search...')}
               className="w-full pl-10 pr-4 py-2 text-base bg-surface-100 border-transparent rounded-lg focus:bg-white focus:border-primary-500 focus:ring-2 focus:ring-primary-500 dark:bg-surface-800 dark:focus:bg-surface-950 dark:text-surface-200 outline-none transition-all"
             />
-          </div>
+          </form>
         </div>
 
         <nav className="flex flex-col gap-2 mb-8">
@@ -102,6 +118,9 @@ const MobileMenu: React.FC<MobileMenuProps> = ({ isOpen, onClose, navLinks }) =>
             </NavLink>
           ))}
         </nav>
+        {customerLoginEnabled && <div className="mb-6 border-t border-surface-200 pt-5 dark:border-surface-800">
+          {user ? <div className="space-y-2"><p className="truncate px-2 text-xs text-surface-500">{user.email}</p><NavLink to="/my-purchases" onClick={onClose} className="block rounded-lg px-4 py-3 font-semibold text-surface-700 dark:text-surface-200">My Purchases</NavLink><button onClick={() => { void logout(); onClose(); }} className="w-full rounded-lg px-4 py-3 text-left font-semibold text-red-600 dark:text-red-400">Logout</button></div> : <NavLink to="/login" onClick={onClose} className="block rounded-xl bg-primary-600 px-4 py-3 text-center font-bold text-white">Customer Login</NavLink>}
+        </div>}
         
         <div className="border-t border-surface-200 dark:border-surface-800 pt-6">
           <p className="text-sm font-medium text-surface-500 dark:text-surface-400 mb-4 px-2">Settings</p>

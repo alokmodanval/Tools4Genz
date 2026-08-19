@@ -1,88 +1,33 @@
-import React, { useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import { AdminField } from '@/components/admin/FormPrimitives';
+import React, { useEffect, useState } from 'react';
+import { defaultSiteSettings, platformService, SiteSettings } from '@/services/platformService';
+import { ADSENSE_PUBLISHER_PATTERN } from '@/utils/monetization';
 
-export const SettingsPage: React.FC = () => {
-  const { t } = useTranslation();
-  const [formData, setFormData] = useState({
-    siteName: 'Tools4Genz',
-    siteUrl: 'https://tools4genz.com',
-    contactEmail: 'contact@tools4genz.com',
-    maintenanceMode: 'false',
-    allowRegistrations: 'false',
-    themeDefault: 'system',
-  });
+const groups: Array<{title:string;description:string;fields:Array<[keyof SiteSettings,string,string?]>}> = [
+  { title:'General', description:'Public brand copy used across the website.', fields:[['site_name','Site name'],['tagline','Tagline'],['short_description','Short description']] },
+  { title:'Contact', description:'Empty fields are hidden from the public Contact page.', fields:[['support_email','Support email','email'],['purchase_support_email','Purchase support email','email'],['whatsapp_number','WhatsApp number'],['phone_number','Phone number'],['location_text','Location / address text'],['business_hours','Business hours'],['support_message','Support message'],['service_enquiry_message','Service enquiry message']] },
+  { title:'Social links', description:'Only add verified public profile URLs.', fields:[['instagram_url','Instagram URL','url'],['youtube_url','YouTube URL','url'],['github_url','GitHub URL','url'],['linkedin_url','LinkedIn URL','url']] },
+];
+const boolKeys: Array<[keyof SiteSettings,string]> = [
+  ['ads_enabled','Advertising master switch'],['adsense_enabled','AdSense enabled'],['auto_ads_enabled','Prefer Auto Ads'],
+  ['ads_on_tools','Ads on eligible tool pages'],['ads_on_projects','Ads on eligible project pages'],['ads_on_services','Ads on the services catalog'],
+  ['consent_provider_configured','Certified consent provider externally configured'],['affiliate_enabled','Affiliate recommendations enabled'],
+  ['premium_features_enabled','Premium foundation flag'],
+];
+const slotFields: Array<[keyof SiteSettings,string]> = [
+  ['adsense_tools_listing_slot_id','Tools listing slot ID'],['adsense_tool_content_slot_id','Tool content slot ID'],
+  ['adsense_project_content_slot_id','Project content slot ID'],['adsense_services_content_slot_id','Services content slot ID'],
+];
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleSave = (e: React.FormEvent) => {
-    e.preventDefault();
-    alert(t('admin.settings.saved', 'Platform settings saved successfully (local mock store)!'));
-  };
-
-  return (
-    <div className="space-y-6 max-w-2xl">
-      <div>
-        <h1 className="text-2xl font-black text-gray-900 dark:text-white">{t('admin.settings.title', 'Platform Settings')}</h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('admin.settings.subtitle', 'Configure general platform variables and system flags.')}</p>
-      </div>
-
-      <form onSubmit={handleSave} className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-200 dark:border-gray-700/80 shadow-sm space-y-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <AdminField label={t('admin.settings.siteName', 'Site Name')} name="siteName" value={formData.siteName} onChange={handleChange} required />
-          <AdminField label={t('admin.settings.siteUrl', 'Site URL')} name="siteUrl" value={formData.siteUrl} onChange={handleChange} required />
-        </div>
-
-        <AdminField label={t('admin.settings.contactEmail', 'Support/Contact Email')} name="contactEmail" value={formData.contactEmail} onChange={handleChange} required />
-
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 border-t border-gray-100 dark:border-gray-700/50 pt-6">
-          <AdminField
-            label={t('admin.settings.maintenanceMode', 'Maintenance Mode')}
-            name="maintenanceMode"
-            value={formData.maintenanceMode}
-            onChange={handleChange}
-            type="select"
-            options={[
-              { value: 'false', label: 'Online / Operational' },
-              { value: 'true', label: 'Under Maintenance' },
-            ]}
-          />
-          <AdminField
-            label={t('admin.settings.allowRegistrations', 'User Registration')}
-            name="allowRegistrations"
-            value={formData.allowRegistrations}
-            onChange={handleChange}
-            type="select"
-            options={[
-              { value: 'false', label: 'Disabled (Invite Only)' },
-              { value: 'true', label: 'Enabled' },
-            ]}
-          />
-          <AdminField
-            label={t('admin.settings.themeDefault', 'Default Theme')}
-            name="themeDefault"
-            value={formData.themeDefault}
-            onChange={handleChange}
-            type="select"
-            options={[
-              { value: 'system', label: 'System Sync' },
-              { value: 'light', label: 'Light Theme' },
-              { value: 'dark', label: 'Dark Theme' },
-            ]}
-          />
-        </div>
-
-        <div className="flex justify-end pt-4 border-t border-gray-100 dark:border-gray-700">
-          <button type="submit" className="px-5 py-2.5 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-xl text-sm transition-all shadow-sm">
-            {t('admin.settings.saveButton', 'Save Platform Settings')}
-          </button>
-        </div>
-      </form>
-    </div>
-  );
+const control = 'mt-1.5 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-gray-950 dark:border-gray-600 dark:bg-gray-900 dark:text-white';
+const SettingsPage: React.FC = () => {
+  const [settings,setSettings]=useState<SiteSettings>(defaultSiteSettings); const [loading,setLoading]=useState(true); const [saving,setSaving]=useState(false); const [message,setMessage]=useState('');
+  useEffect(()=>{platformService.adminSettings().then(setSettings).catch((err)=>setMessage(err instanceof Error?err.message:'Unable to load settings.')).finally(()=>setLoading(false));},[]);
+  const set=(key:keyof SiteSettings,value:string)=>setSettings(current=>({...current,[key]:value}));
+  const save=async(event:React.FormEvent)=>{event.preventDefault();setSaving(true);setMessage('');try{setSettings(await platformService.updateSettings(settings));setMessage('Settings saved to Cloudflare D1.');}catch(err){setMessage(err instanceof Error?err.message:'Unable to save settings.');}finally{setSaving(false);}};
+  const publisherValid=ADSENSE_PUBLISHER_PATTERN.test(settings.adsense_publisher_id);
+  const technicallyReady=settings.ads_enabled==='true'&&settings.adsense_enabled==='true'&&publisherValid&&settings.consent_provider_configured==='true';
+  return <div className="mx-auto max-w-4xl space-y-6"><div><h1 className="text-2xl font-black text-gray-950 dark:text-white">Platform Settings</h1><p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Public configuration only. Secrets remain in Cloudflare bindings.</p></div>{loading?<div className="rounded-2xl bg-white p-8 dark:bg-gray-800">Loading settings…</div>:<form onSubmit={save} className="space-y-6">{groups.map(group=><section key={group.title} className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800"><h2 className="font-black">{group.title}</h2><p className="mb-5 mt-1 text-sm text-gray-500">{group.description}</p><div className="grid gap-4 sm:grid-cols-2">{group.fields.map(([key,label,type])=><label key={key} className={key.includes('description')||key.includes('message')?'sm:col-span-2 text-sm font-semibold':'text-sm font-semibold'}>{label}{key.includes('description')||key.includes('message')?<textarea rows={3} value={settings[key]} onChange={e=>set(key,e.target.value)} className={control}/>:<input type={type||'text'} value={settings[key]} onChange={e=>set(key,e.target.value)} className={control}/>}</label>)}</div></section>)}
+  <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800"><div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="font-black">Monetization</h2><p className="mt-1 text-sm text-gray-500">Deploy-safe provider configuration and feature flags.</p></div><span className={`rounded-full px-3 py-1 text-xs font-black ${technicallyReady?'bg-green-100 text-green-800':'bg-gray-100 text-gray-700'}`}>{technicallyReady?'Technically configured':'Not configured'}</span></div><p className="mt-4 rounded-xl bg-amber-50 p-3 text-xs text-amber-900 dark:bg-amber-950/30 dark:text-amber-200"><strong>AdSense account approval is unknown.</strong> Tools4Genz cannot infer provider approval. No ad request is made until a valid ID, eligible route, enabled switches, and external consent-provider confirmation are all present.</p><div className="mt-5 grid gap-3 sm:grid-cols-2">{boolKeys.map(([key,label])=><label key={key} className="flex items-center gap-3 rounded-xl border border-gray-200 p-3 text-sm font-semibold dark:border-gray-700"><input type="checkbox" checked={settings[key]==='true'} onChange={e=>set(key,e.target.checked?'true':'false')} />{label}</label>)}</div><div className="mt-5 grid gap-4 sm:grid-cols-2"><label className="text-sm font-semibold">AdSense publisher ID<input value={settings.adsense_publisher_id} onChange={e=>set('adsense_publisher_id',e.target.value)} placeholder="Enter your real ca-pub ID" className={control}/><span className={`mt-1 block text-xs ${settings.adsense_publisher_id&&!publisherValid?'text-red-600':'text-gray-500'}`}>{settings.adsense_publisher_id&&!publisherValid?'Expected ca-pub- followed by 16 digits.':'No ID is invented or prefilled.'}</span></label><label className="text-sm font-semibold">Consent provider name<input value={settings.consent_provider_name} onChange={e=>set('consent_provider_name',e.target.value)} placeholder="Configured externally" className={control}/></label>{slotFields.map(([key,label])=><label key={key} className="text-sm font-semibold">{label}<input inputMode="numeric" value={settings[key]} onChange={e=>set(key,e.target.value)} className={control}/></label>)}<label className="sm:col-span-2 text-sm font-semibold">Affiliate disclosure<textarea rows={3} value={settings.affiliate_disclosure_text} onChange={e=>set('affiliate_disclosure_text',e.target.value)} className={control}/></label></div></section>
+  {message&&<p className="rounded-xl bg-blue-50 p-3 text-sm text-blue-800 dark:bg-blue-950/40 dark:text-blue-200">{message}</p>}<div className="flex justify-end"><button disabled={saving} className="rounded-xl bg-primary-600 px-5 py-3 text-sm font-bold text-white hover:bg-primary-700 disabled:opacity-60">{saving?'Saving…':'Save settings'}</button></div></form>}</div>;
 };
-
 export default SettingsPage;

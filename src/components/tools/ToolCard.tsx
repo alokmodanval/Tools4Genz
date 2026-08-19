@@ -16,6 +16,8 @@ const ToolCard: React.FC<ToolCardProps> = ({ tool }) => {
 
   const isComingSoon = tool.status === 'coming-soon';
   const isDisabled = tool.status === 'disabled';
+  const isPremium = tool.accessTier === 'premium';
+  const tierUnavailable = isPremium || tool.accessTier === 'coming-soon';
 
   return (
     <Card
@@ -38,6 +40,7 @@ const ToolCard: React.FC<ToolCardProps> = ({ tool }) => {
             {t(integrationBadge.labelKey, integrationBadge.label)}
           </span>
           <Badge variant="primary" size="sm">{tool.category}</Badge>
+          <Badge variant={isPremium ? 'warning' : 'success'} size="sm">{isPremium ? 'Premium' : 'Free'}</Badge>
         </div>
       </div>
 
@@ -63,9 +66,9 @@ const ToolCard: React.FC<ToolCardProps> = ({ tool }) => {
       </div>
 
       <div className="mt-auto">
-        {isComingSoon || isDisabled ? (
+        {isComingSoon || isDisabled || tierUnavailable ? (
           <Button variant="outline" className="w-full opacity-60 cursor-not-allowed" disabled>
-            {isComingSoon ? t('tools.coming_soon', 'Coming Soon') : t('tools.disabled', 'Disabled')}
+            {isPremium ? 'Premium — not available yet' : isComingSoon || tool.accessTier === 'coming-soon' ? t('tools.coming_soon', 'Coming Soon') : t('tools.disabled', 'Disabled')}
           </Button>
         ) : (
           <Button variant="primary" className="w-full" href={`/tools/${tool.slug}`}>

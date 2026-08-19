@@ -9,7 +9,7 @@ const NotFoundPage = () => {
 
   return (
     <>
-      <SEO title={t('seo.not_found.title', '404 - Page Not Found')} description={t('seo.not_found.description', 'The page you are looking for does not exist.')} />
+      <SEO title={t('seo.not_found.title', '404 - Page Not Found')} description={t('seo.not_found.description', 'The page you are looking for does not exist.')} noindex />
       
       <div className="min-h-[70vh] flex items-center justify-center bg-gray-50 dark:bg-gray-900 px-4">
         <Container className="text-center">

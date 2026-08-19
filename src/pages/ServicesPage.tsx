@@ -1,58 +1,30 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import Container from '@/components/layout/Container';
 import SEO from '@/components/SEO';
 import ServiceCard from '@/components/services/ServiceCard';
 import Button from '@/components/ui/Button';
 import { services } from '@/data/services';
+import { trackEvent } from '@/services/platformService';
+import AdSlot from '@/components/monetization/AdSlot';
+import RecommendedResources from '@/components/monetization/RecommendedResources';
 
-const ServicesPage = () => {
-  const { t } = useTranslation();
-
-  return (
-    <>
-      <SEO title={t('seo.services.title', 'Services - Tools4Genz')} description={t('seo.services.description', 'Professional software services.')} />
-      
-      <div className="bg-gray-50 dark:bg-gray-900 min-h-screen pb-20">
-        <section className="bg-gradient-to-br from-primary-900 to-indigo-900 py-20 text-center text-white">
-          <Container>
-            <h1 className="text-4xl md:text-5xl font-extrabold mb-6">
-              {t('services.hero_title', 'Our Services')}
-            </h1>
-            <p className="text-xl text-primary-100 max-w-2xl mx-auto">
-              {t('services.hero_subtitle', 'From student projects to enterprise solutions, we provide top-notch development services tailored to your needs.')}
-            </p>
-          </Container>
-        </section>
-
-        <section className="py-20 -mt-10">
-          <Container>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {services.map(service => (
-                <ServiceCard key={service.id} service={service} />
-              ))}
-            </div>
-          </Container>
-        </section>
-
-        <section className="py-16">
-          <Container>
-            <div className="bg-white dark:bg-gray-800 rounded-3xl p-10 md:p-16 text-center shadow-sm border border-gray-100 dark:border-gray-700">
-              <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">
-                {t('services.cta_title', 'Have a custom requirement?')}
-              </h2>
-              <p className="text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-2xl mx-auto">
-                {t('services.cta_desc', 'Contact us to discuss your specific needs. We build tailored software solutions.')}
-              </p>
-              <Button href="/about" size="lg" variant="primary">
-                {t('services.cta_button', 'Contact Us')}
-              </Button>
-            </div>
-          </Container>
-        </section>
-      </div>
-    </>
-  );
-};
-
+const choose = [
+  ['affordable','💰','Affordable solutions','Clear scope discussions help match a practical solution to the available budget.'],
+  ['student','🎓','Student-friendly','Guidance, documentation support, and approachable technical communication.'],
+  ['custom','🧩','Custom development','Solutions shaped around the actual workflow instead of a one-size-fits-all template.'],
+  ['modern','⚡','Modern stack','Current web and cloud technologies selected according to project needs.'],
+  ['secure','🔒','Secure delivery','Private, order-authorized delivery is available for eligible digital products.'],
+  ['support','🤝','Practical support','A clear request and review process before scope or delivery commitments are made.'],
+];
+const steps=[['tell','1','Tell us what you need','Share your goal, constraints, and preferred timeline.'],['scope','2','Discuss the scope','We review requirements and clarify a realistic approach.'],['build','3','We build','Development follows the mutually agreed scope and milestones.'],['delivery','4','Delivery & support','Receive the agreed deliverables and relevant handover support.']];
+const ServicesPage: React.FC=()=>{const {t}=useTranslation();useEffect(()=>trackEvent('service_view','service','catalog'),[]);return <><SEO title={t('seo.services.title','Web, App & Custom Software Services | Tools4Genz')} description={t('seo.services.description','Request responsive websites, web applications, custom software, automation, and student project guidance based on your requirements.')} />
+  <main className="min-h-screen bg-surface-50 dark:bg-surface-950">
+    <section className="relative overflow-hidden border-b border-primary-800 bg-gradient-to-br from-surface-950 via-primary-950 to-indigo-950 py-20 text-white md:py-28"><div className="absolute -right-24 -top-24 h-80 w-80 rounded-full bg-primary-500/20 blur-3xl"/><Container><div className="relative max-w-4xl"><span className="rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.2em]">{t('services.eyebrow','Development & digital solutions')}</span><h1 className="mt-7 text-4xl font-black leading-tight md:text-6xl">{t('services.hero_title','Services for Students, Creators & Businesses')}</h1><p className="mt-6 max-w-3xl text-lg leading-8 text-primary-100 md:text-xl">{t('services.hero_subtitle','From responsive websites and web applications to custom software and student project guidance, request a solution shaped around your real needs.')}</p><div className="mt-9 flex flex-wrap gap-3"><Button href="/services/request" size="lg">{t('services.requestService','Request a Service')}</Button><Button href="/projects" size="lg" variant="outline" className="border-white/30 text-white hover:bg-white/10">{t('services.viewProjects','View Projects')}</Button><Button href="/contact" size="lg" variant="ghost" className="text-white">{t('services.contactUs','Contact Us')}</Button></div></div></Container></section>
+    <section className="py-20"><Container><div className="mb-10 max-w-2xl"><h2 className="text-3xl font-black text-surface-950 dark:text-white md:text-4xl">{t('services.solutionsTitle','Choose the support you need')}</h2><p className="mt-3 text-surface-600 dark:text-surface-300">{t('services.solutionsDesc','Each request starts with a review. Pricing and timelines are confirmed only after the scope is understood.')}</p></div><div className="grid gap-7 md:grid-cols-2 lg:grid-cols-3">{services.map(service=><ServiceCard key={service.id} service={service}/>)}</div></Container></section>
+    <section className="border-y border-surface-200 bg-white py-20 dark:border-surface-800 dark:bg-surface-900"><Container><div className="text-center"><h2 className="text-3xl font-black text-surface-950 dark:text-white">{t('services.whyTitle','Why choose Tools4Genz?')}</h2><p className="mx-auto mt-3 max-w-2xl text-surface-600 dark:text-surface-300">{t('services.whyDesc','A practical, transparent approach for projects of different sizes and stages.')}</p></div><div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{choose.map(([key,icon,title,desc])=><div key={key} className="rounded-2xl border border-surface-200 bg-surface-50 p-6 dark:border-surface-700 dark:bg-surface-800/60"><span className="text-2xl">{icon}</span><h3 className="mt-4 font-black text-surface-950 dark:text-white">{t(`services.why.${key}.title`,title)}</h3><p className="mt-2 text-sm leading-6 text-surface-600 dark:text-surface-300">{t(`services.why.${key}.desc`,desc)}</p></div>)}</div></Container></section>
+    <section className="py-20"><Container><div className="text-center"><h2 className="text-3xl font-black text-surface-950 dark:text-white">{t('services.processTitle','How it works')}</h2></div><div className="mt-12 grid gap-6 md:grid-cols-4">{steps.map(([key,number,title,desc])=><div key={key} className="relative rounded-2xl border border-surface-200 bg-white p-6 dark:border-surface-700 dark:bg-surface-900"><span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-600 font-black text-white">{number}</span><h3 className="mt-5 font-black text-surface-950 dark:text-white">{t(`services.steps.${key}.title`,title)}</h3><p className="mt-2 text-sm leading-6 text-surface-600 dark:text-surface-300">{t(`services.steps.${key}.desc`,desc)}</p></div>)}</div></Container></section>
+    <section><Container><AdSlot placement="services_content" /><RecommendedResources entityType="service" entityId="catalog" /></Container></section>
+    <section className="pb-20"><Container><div className="rounded-3xl bg-gradient-to-r from-primary-700 to-indigo-700 p-9 text-center text-white md:p-14"><h2 className="text-3xl font-black">{t('services.cta_title','Have a custom requirement?')}</h2><p className="mx-auto mt-3 max-w-2xl text-primary-100">{t('services.cta_desc','Tell us what you are trying to build. We will review the request before discussing scope, timeline, or cost.')}</p><div className="mt-7 flex flex-wrap justify-center gap-3"><Button href="/services/request" size="lg" className="bg-white text-primary-700 hover:bg-primary-50">{t('services.requestService','Request a Service')}</Button><Button href="/contact" size="lg" variant="outline" className="border-white/30 text-white hover:bg-white/10">{t('services.contactUs','Contact Us')}</Button></div></div></Container></section>
+  </main></>};
 export default ServicesPage;

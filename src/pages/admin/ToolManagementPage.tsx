@@ -30,9 +30,12 @@ export const ToolManagementPage: React.FC = () => {
     longDescription: '',
     category: 'writing-tools' as ToolCategory,
     status: 'active' as ToolStatus,
+    accessTier: 'free' as 'free' | 'premium' | 'coming-soon',
     featured: 'false',
     icon: '🔧',
     tags: '',
+    searchKeywords: '',
+    sortOrder: '0',
     seoTitle: '',
     seoDescription: '',
     seoKeywords: '',
@@ -97,9 +100,12 @@ export const ToolManagementPage: React.FC = () => {
       longDescription: tool.longDescription || '',
       category: tool.category,
       status: tool.status,
+      accessTier: tool.accessTier || 'free',
       featured: tool.featured ? 'true' : 'false',
       icon: tool.icon || '🔧',
       tags: tool.tags ? tool.tags.join(', ') : '',
+      searchKeywords: tool.searchKeywords ? tool.searchKeywords.join(', ') : '',
+      sortOrder: String(tool.sortOrder || 0),
       seoTitle: tool.seo?.title || '',
       seoDescription: tool.seo?.description || '',
       seoKeywords: tool.seo?.keywords ? tool.seo.keywords.join(', ') : '',
@@ -119,20 +125,23 @@ export const ToolManagementPage: React.FC = () => {
   const handleCreateNew = () => {
     setEditingTool(null);
     setFormData({
-      id: `tool-${Math.random().toString(36).substr(2, 9)}`,
+      id: `tool-${crypto.randomUUID()}`,
       name: '',
       slug: '',
       description: '',
       longDescription: '',
       category: 'writing-tools',
       status: 'active',
+      accessTier: 'free',
       featured: 'false',
       icon: '🔧',
       tags: '',
+      searchKeywords: '',
+      sortOrder: '0',
       seoTitle: '',
       seoDescription: '',
       seoKeywords: '',
-      integration: 'native',
+      integration: 'external-url',
       externalUrl: '',
       embedUrl: '',
       embedSandbox: 'allow-scripts allow-same-origin',
@@ -157,7 +166,7 @@ export const ToolManagementPage: React.FC = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm(t('admin.confirmDelete', 'Are you sure you want to delete this tool?'))) {
+    if (confirm(t('admin.confirmArchive', 'Archive this tool and hide it from the public catalog?'))) {
       await ToolAdminService.delete(id);
       await loadData();
     }
@@ -201,9 +210,12 @@ export const ToolManagementPage: React.FC = () => {
       longDescription: formData.longDescription,
       category: formData.category,
       status: formData.status,
+      accessTier: formData.accessTier,
       featured: formData.featured === 'true',
       icon: formData.icon,
       tags: formData.tags.split(',').map(s => s.trim()).filter(Boolean),
+      searchKeywords: formData.searchKeywords.split(',').map(s => s.trim()).filter(Boolean),
+      sortOrder: Number(formData.sortOrder) || 0,
       integration,
       integrationConfig,
       allowEmbed: formData.allowEmbed === 'true',
@@ -314,7 +326,7 @@ export const ToolManagementPage: React.FC = () => {
                       Edit
                     </button>
                     <button onClick={() => handleDelete(t.id)} className="text-sm px-3 py-1.5 bg-red-50 hover:bg-red-100 dark:bg-red-950/30 text-red-600 dark:text-red-400 rounded-lg">
-                      Delete
+                      Archive
                     </button>
                   </td>
                 </tr>
@@ -358,6 +370,7 @@ export const ToolManagementPage: React.FC = () => {
                   type="select"
                   options={[
                     { value: 'active', label: 'Active / Published' },
+                    { value: 'draft', label: 'Draft / Hidden' },
                     { value: 'beta', label: 'Beta Program' },
                     { value: 'coming-soon', label: 'Coming Soon Catalog' },
                     { value: 'disabled', label: 'Disabled / Internal' },
@@ -374,11 +387,21 @@ export const ToolManagementPage: React.FC = () => {
                     { value: 'true', label: 'Featured ⭐' },
                   ]}
                 />
+                <AdminField
+                  label="Access tier"
+                  name="accessTier"
+                  value={formData.accessTier}
+                  onChange={handleFieldChange}
+                  type="select"
+                  options={[{ value: 'free', label: 'Free' }, { value: 'premium', label: 'Premium (future)' }, { value: 'coming-soon', label: 'Coming soon' }]}
+                />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <AdminField label={t('admin.form.icon', 'Visual Icon (Emoji)')} name="icon" value={formData.icon} onChange={handleFieldChange} required />
                 <AdminField label={t('admin.form.tags', 'Tags / Tags Search (Comma Separated)')} name="tags" value={formData.tags} onChange={handleFieldChange} placeholder="e.g. Word Counter, Stats, Tool" />
+                <AdminField label="Search keywords (comma separated)" name="searchKeywords" value={formData.searchKeywords} onChange={handleFieldChange} />
+                <AdminField label="Sort order" name="sortOrder" type="number" value={formData.sortOrder} onChange={handleFieldChange} />
               </div>
 
               {/* Integration Type */}

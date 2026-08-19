@@ -14,6 +14,13 @@ const ServicesPage = lazy(() => import('@/pages/ServicesPage'));
 const StudentsPage = lazy(() => import('@/pages/StudentsPage'));
 const ClientsPage = lazy(() => import('@/pages/ClientsPage'));
 const AboutPage = lazy(() => import('@/pages/AboutPage'));
+const MyPurchasesPage = lazy(() => import('@/pages/MyPurchasesPage'));
+const PurchaseRecoveryPage = lazy(() => import('@/pages/PurchaseRecoveryPage'));
+const ServiceRequestPage = lazy(() => import('@/pages/ServiceRequestPage'));
+const ContactPage = lazy(() => import('@/pages/ContactPage'));
+const PrivacyPage = lazy(() => import('@/pages/PrivacyPage'));
+const TermsPage = lazy(() => import('@/pages/TermsPage'));
+const CustomerLoginPage = lazy(() => import('@/pages/CustomerLoginPage'));
 const NotFoundPage = lazy(() => import('@/pages/NotFoundPage'));
 
 // Lazy load admin pages
@@ -25,6 +32,8 @@ const ServiceManagementPage = lazy(() => import('@/pages/admin/ServiceManagement
 const CategoryManagementPage = lazy(() => import('@/pages/admin/CategoryManagementPage'));
 const RequestManagementPage = lazy(() => import('@/pages/admin/RequestManagementPage'));
 const SettingsPage = lazy(() => import('@/pages/admin/SettingsPage'));
+const CustomerUsersPage = lazy(() => import('@/pages/admin/CustomerUsersPage'));
+const AffiliateManagementPage = lazy(() => import('@/pages/admin/AffiliateManagementPage'));
 
 // Loading fallback
 const PageLoader = () => (
@@ -49,9 +58,16 @@ export const router = createBrowserRouter([
       { path: 'projects', element: <SuspenseWrapper><ProjectsPage /></SuspenseWrapper> },
       { path: 'projects/:slug', element: <SuspenseWrapper><ProjectDetailPage /></SuspenseWrapper> },
       { path: 'services', element: <SuspenseWrapper><ServicesPage /></SuspenseWrapper> },
+      { path: 'services/request', element: <SuspenseWrapper><ServiceRequestPage /></SuspenseWrapper> },
       { path: 'students', element: <SuspenseWrapper><StudentsPage /></SuspenseWrapper> },
       { path: 'clients', element: <SuspenseWrapper><ClientsPage /></SuspenseWrapper> },
       { path: 'about', element: <SuspenseWrapper><AboutPage /></SuspenseWrapper> },
+      { path: 'my-purchases', element: <SuspenseWrapper><MyPurchasesPage /></SuspenseWrapper> },
+      { path: 'purchase/recover', element: <SuspenseWrapper><PurchaseRecoveryPage /></SuspenseWrapper> },
+      { path: 'contact', element: <SuspenseWrapper><ContactPage /></SuspenseWrapper> },
+      { path: 'privacy', element: <SuspenseWrapper><PrivacyPage /></SuspenseWrapper> },
+      { path: 'terms', element: <SuspenseWrapper><TermsPage /></SuspenseWrapper> },
+      { path: 'login', element: <SuspenseWrapper><CustomerLoginPage /></SuspenseWrapper> },
       { path: '*', element: <SuspenseWrapper><NotFoundPage /></SuspenseWrapper> },
     ],
   },
@@ -75,6 +91,8 @@ export const router = createBrowserRouter([
       { path: 'categories', element: <SuspenseWrapper><CategoryManagementPage /></SuspenseWrapper> },
       { path: 'requests', element: <SuspenseWrapper><RequestManagementPage /></SuspenseWrapper> },
       { path: 'settings', element: <SuspenseWrapper><SettingsPage /></SuspenseWrapper> },
+      { path: 'affiliates', element: <SuspenseWrapper><AffiliateManagementPage /></SuspenseWrapper> },
+      { path: 'users', element: <SuspenseWrapper><CustomerUsersPage /></SuspenseWrapper> },
     ],
   },
 ]);

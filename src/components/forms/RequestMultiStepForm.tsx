@@ -17,13 +17,15 @@ import {
   SelectOption,
 } from '@/data/requestOptions';
 import { RequestSubmissionResult } from '@/types/request';
+import { trackEvent } from '@/services/platformService';
 
 export interface RequestMultiStepFormProps {
   formType: 'student' | 'client';
   draftKey: string;
+  initialProjectType?: string;
 }
 
-export const RequestMultiStepForm: React.FC<RequestMultiStepFormProps> = ({ formType, draftKey }) => {
+export const RequestMultiStepForm: React.FC<RequestMultiStepFormProps> = ({ formType, draftKey, initialProjectType }) => {
   const { t } = useTranslation();
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -41,7 +43,7 @@ export const RequestMultiStepForm: React.FC<RequestMultiStepFormProps> = ({ form
     company: '',
     websiteUrl: '',
     referenceWebsite: '',
-    projectType: formType === 'student' ? 'Final Year Project' : 'Business Website',
+    projectType: initialProjectType || (formType === 'student' ? 'Final Year Project' : 'Business Website'),
     technology: 'Python',
     description: '',
     budget: formType === 'student' ? '₹3,000–₹5,000' : '₹10,000–₹25,000',
@@ -104,6 +106,7 @@ export const RequestMultiStepForm: React.FC<RequestMultiStepFormProps> = ({ form
 
   const handleNext = () => {
     if (validateStep(currentStep)) {
+      if (currentStep === 1) trackEvent('request_started', 'request', formType);
       setCurrentStep(prev => prev + 1);
       window.scrollTo({ top: 400, behavior: 'smooth' });
     }
@@ -141,7 +144,10 @@ export const RequestMultiStepForm: React.FC<RequestMultiStepFormProps> = ({ form
         referenceWebsite: formData.referenceWebsite,
       });
 
+      if (!result.success) throw new Error(result.message || 'Request submission failed');
+
       setSubmissionResult(result);
+      trackEvent('request_submitted', 'request', formData.projectType);
       requestService.clearDraft(draftKey);
       setCurrentStep(5); // Confirmation Step
     } catch {
@@ -158,26 +164,29 @@ export const RequestMultiStepForm: React.FC<RequestMultiStepFormProps> = ({ form
     setCurrentStep(1);
   };
 
-  const projectOptions: SelectOption[] = formType === 'student' ? studentProjectTypeOptions : clientServiceTypeOptions;
+  const baseProjectOptions: SelectOption[] = formType === 'student' ? studentProjectTypeOptions : clientServiceTypeOptions;
+  const projectOptions: SelectOption[] = initialProjectType && !baseProjectOptions.some((option) => option.value === initialProjectType)
+    ? [{ value: initialProjectType, label: initialProjectType }, ...baseProjectOptions]
+    : baseProjectOptions;
   const budgetOptionsList: SelectOption[] = formType === 'student' ? studentBudgetOptions : clientBudgetOptions;
 
   return (
-    <div className="bg-white dark:bg-gray-800 p-6 md:p-10 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700">
+    <div className="min-w-0 overflow-hidden bg-white dark:bg-gray-800 p-4 sm:p-6 md:p-10 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700">
       {/* Progress Bar Header (Steps 1 to 4) */}
       {currentStep <= 4 && (
         <div className="mb-8">
-          <div className="flex items-center justify-between text-xs font-semibold text-gray-500 dark:text-gray-400 mb-3">
+          <div className="grid grid-cols-4 gap-1 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 mb-3">
             <span className={currentStep >= 1 ? 'text-primary-600 dark:text-primary-400 font-bold' : ''}>
-              1. {t('forms.step.contact', 'Contact')}
+              1.<span className="hidden sm:inline"> {t('forms.step.contact', 'Contact')}</span>
             </span>
             <span className={currentStep >= 2 ? 'text-primary-600 dark:text-primary-400 font-bold' : ''}>
-              2. {t('forms.step.details', 'Details')}
+              2.<span className="hidden sm:inline"> {t('forms.step.details', 'Details')}</span>
             </span>
             <span className={currentStep >= 3 ? 'text-primary-600 dark:text-primary-400 font-bold' : ''}>
-              3. {t('forms.step.budget', 'Budget & Timeline')}
+              3.<span className="hidden sm:inline"> {t('forms.step.budget', 'Budget & Timeline')}</span>
             </span>
             <span className={currentStep >= 4 ? 'text-primary-600 dark:text-primary-400 font-bold' : ''}>
-              4. {t('forms.step.review', 'Review')}
+              4.<span className="hidden sm:inline"> {t('forms.step.review', 'Review')}</span>
             </span>
           </div>
 
@@ -483,7 +492,7 @@ export const RequestMultiStepForm: React.FC<RequestMultiStepFormProps> = ({ form
           <div>
             <Badge variant="success" size="md" className="mb-2">{t('forms.success.badge', 'Request Processed')}</Badge>
             <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
-              {t('forms.success.title', 'Your Request Has Been Generated!')}
+              {t('forms.success.title', 'Request submitted successfully!')}
             </h3>
           </div>
 
@@ -500,7 +509,7 @@ export const RequestMultiStepForm: React.FC<RequestMultiStepFormProps> = ({ form
           </div>
 
           <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-2xl text-xs sm:text-sm text-blue-800 dark:text-blue-300 max-w-lg mx-auto leading-relaxed">
-            ℹ️ {t('forms.success.note', 'Your request reference has been created. Our team will review your details and contact you shortly. No data has been stored on a live server yet.')}
+            ℹ️ {t('forms.success.note', 'Your request was stored securely. Keep the reference ID for support; our team will review the details and contact you using your preferred method.')}
           </div>
 
           <div className="pt-4 flex justify-center space-x-4">

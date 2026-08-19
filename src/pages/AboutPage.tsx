@@ -9,7 +9,7 @@ const AboutPage = () => {
 
   return (
     <>
-      <SEO title={t('seo.about.title', 'About Us - Tools4Genz')} description={t('seo.about.description', 'Learn more about Tools4Genz.')} />
+      <SEO title={t('seo.about.title', 'About Tools4Genz')} description={t('seo.about.description', 'Learn how Tools4Genz supports students, creators, and businesses with practical online tools, software projects, and development services.')} />
       
       <div className="bg-gray-50 dark:bg-gray-900 min-h-screen pb-20">
         <section className="bg-gradient-to-br from-primary-700 to-primary-900 py-24 text-center text-white">

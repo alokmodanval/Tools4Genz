@@ -9,6 +9,24 @@ import ServiceCard from '@/components/services/ServiceCard';
 import { tools } from '@/data/tools';
 import { projects } from '@/data/projects';
 import { services } from '@/data/services';
+import { canonicalUrl, SITE_NAME } from '@/config/site';
+
+const homeStructuredData = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: SITE_NAME,
+    url: canonicalUrl('/'),
+    description: 'Free online tools, practical software projects, and custom digital solutions for students, creators, and businesses.',
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    name: SITE_NAME,
+    url: canonicalUrl('/'),
+    description: 'Tools4Genz provides online tools, software project information, and custom development services.',
+  },
+];
 
 const HomePage = () => {
   const { t } = useTranslation();
@@ -18,7 +36,12 @@ const HomePage = () => {
 
   return (
     <>
-      <SEO title={t('seo.home.title', 'Home - Tools4Genz')} description={t('seo.home.description', 'Tools4Genz Platform')} />
+      <SEO
+        title={t('seo.home.title', 'Smart Tools, Projects & Digital Solutions | Tools4Genz')}
+        description={t('seo.home.description', 'Explore free online tools, practical software projects, and custom development services for students, creators, and businesses.')}
+        canonicalPath="/"
+        jsonLd={homeStructuredData}
+      />
       
       {/* 1. HERO SECTION */}
       <section className="relative overflow-hidden bg-gradient-to-b from-indigo-50 to-white dark:from-indigo-950 dark:to-gray-900 py-20 md:py-32">
